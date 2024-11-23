@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-from sklearn.neighbors import KernelDensity
 import matplotlib.pyplot as plt
 import seaborn as sns
 #1.Make a heatmap of the value of the Goldstein–Price function
@@ -73,9 +72,8 @@ def KDE_lda_and_svm(lda_file_path, svm_file_path, lda_bandwidth=200, svm_bandwid
     # Plot KDE for LDA
     fig, ax = plt.subplots(figsize=(12, 6))
     sns.kdeplot(data=lda_target_values, bw_adjust=lda_bandwidth / 100, ax=ax, color="blue", label="LDA KDE")
-    for index, x in enumerate(lda_target_values):
-        ax.annotate(r'$x_{}$'.format(index + 1), xy=[x, 0], horizontalalignment='center', fontsize=10, color="blue")
-    ax.set_title("LDA Kernel Density Estimate")
+    ax.plot(lda_target_values, np.zeros_like(lda_target_values), 'o', markersize=5, color='blue', alpha=0.7, label="LDA Points")
+    ax.set_title("LDA Kernel Density Estimate with Points")
     ax.set_xlabel("Benchmark Value")
     ax.set_ylabel("Density")
     ax.legend()
@@ -83,9 +81,8 @@ def KDE_lda_and_svm(lda_file_path, svm_file_path, lda_bandwidth=200, svm_bandwid
     # Plot KDE for SVM
     fig, ax = plt.subplots(figsize=(12, 6))
     sns.kdeplot(data=svm_target_values, bw_adjust=svm_bandwidth / 0.01, ax=ax, color="green", label="SVM KDE")
-    for index, x in enumerate(svm_target_values):
-        ax.annotate(r'$x_{}$'.format(index + 1), xy=[x, 0], horizontalalignment='center', fontsize=10, color="green")
-    ax.set_title("SVM Kernel Density Estimate")
+    ax.plot(svm_target_values, np.zeros_like(svm_target_values), 'o', markersize=5, color='green', alpha=0.7, label="SVM Points")
+    ax.set_title("SVM Kernel Density Estimate with Points")
     ax.set_xlabel("Benchmark Value")
     ax.set_ylabel("Density")
     ax.legend()
