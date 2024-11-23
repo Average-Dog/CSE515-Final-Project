@@ -1,4 +1,6 @@
+import pandas as pd
 import numpy as np
+from sklearn.neighbors import KernelDensity
 import matplotlib.pyplot as plt
 import seaborn as sns
 #1.Make a heatmap of the value of the Goldstein–Price function
@@ -36,14 +38,13 @@ def plot_goldstein_price():
 def plot_transformed_goldstein_price():
     # Define the transformed Goldstein–Price function
     def transformed_goldstein_price(x1, x2):
-        x1_scaled = 4 * x1 - 2
-        x2_scaled = 4 * x2 - 2
-        term1 = (1 + (x1_scaled + x2_scaled + 1)**2 *
-        (19 - 14 * x1_scaled + 3 * x1_scaled**2 - 14 * x2_scaled + 6 * x1_scaled * x2_scaled + 3 * x2_scaled**2))
-        term2 = (30 + (2 * x1_scaled - 3 * x2_scaled)**2 *
-        (18 - 32 * x1_scaled + 12 * x1_scaled**2 + 48 * x2_scaled - 36 * x1_scaled * x2_scaled + 27 * x2_scaled**2))
-        log_transformed = np.log(np.maximum(term1 * term2 - 8.693, 1e-8))
-        return log_transformed / 2.427
+        x1_bar = 4 * x1 - 2
+        x2_bar = 4 * x2 - 2
+        term1 = (1 + (x1_bar + x2_bar + 1) ** 2 * (
+                    19 - 14 * x1_bar + 3 * x1_bar ** 2 - 14 * x2_bar + 6 * x1_bar * x2_bar + 3 * x2_bar ** 2))
+        term2 = (30 + (2 * x1_bar - 3 * x2_bar) ** 2 * (
+                    18 - 32 * x1_bar + 12 * x1_bar ** 2 + 48 * x2_bar - 36 * x1_bar * x2_bar + 27 * x2_bar ** 2))
+        return (1 / 2.427) * np.log(term1 * term2) - 8.693
     x1 = np.linspace(-2, 2, 1000)
     x2 = np.linspace(-2, 2, 1000)
     X1, X2 = np.meshgrid(x1, x2)
@@ -61,26 +62,6 @@ def plot_transformed_goldstein_price():
     plt.xlabel('X1')
     plt.ylabel('X2')
     plt.show()
-#3D plot (to test the correctness of the function)
-# def transformed_goldstein_price(x1, x2):
-#     term1 = (1 + (x1 + x2 + 1)**2 *
-#                  (19 - 14 * x1 + 3 * x1**2 - 14 * x2 + 6 * x1 * x2 + 3 * x2**2))
-#     term2 = (30 + (2 * x1 - 3 * x2)**2 *
-#                  (18 - 32 * x1 + 12 * x1**2 + 48 * x2 - 36 * x1 * x2 + 27 * x2**2))
-#     log_transformed = np.log(np.maximum(term1 * term2 - 8.693, 1e-8))
-#     return log_transformed / 2.427
-# x1 = np.linspace(-2, 2, 200)
-# x2 = np.linspace(-2, 2, 200)
-# X1, X2 = np.meshgrid(x1, x2)
-# Z_transformed = transformed_goldstein_price(X1, X2)
-# fig = plt.figure(figsize=(10, 8))
-# ax = fig.add_subplot(111, projection='3d')
-# ax.plot_surface(X1, X2, Z_transformed, cmap="viridis", edgecolor="k", alpha=0.8)
-# ax.set_title("3D Plot of the Transformed Goldstein–Price Function")
-# ax.set_xlabel("X1")
-# ax.set_ylabel("X2")
-# ax.set_zlabel("Transformed Value")
-# plt.show()
 #4.Make a kernel density estimate of the distribution of the values for the lda and svm benchmarks
 
 if __name__ == "__main__":
