@@ -63,7 +63,34 @@ def plot_transformed_goldstein_price():
     plt.ylabel('X2')
     plt.show()
 #4.Make a kernel density estimate of the distribution of the values for the lda and svm benchmarks
-
+def KDE_lda_and_svm(lda_file_path, svm_file_path, lda_bandwidth=200, svm_bandwidth=0.01):
+    # Load data
+    lda_data = pd.read_csv(lda_file_path)
+    svm_data = pd.read_csv(svm_file_path)
+    lda_target_values = pd.to_numeric(lda_data.iloc[:, 3], errors='coerce').dropna().values
+    svm_target_values = pd.to_numeric(svm_data.iloc[:, 3], errors='coerce').dropna().values
+    sns.set()
+    # Plot KDE for LDA
+    fig, ax = plt.subplots(figsize=(12, 6))
+    sns.kdeplot(data=lda_target_values, bw_adjust=lda_bandwidth / 100, ax=ax, color="blue", label="LDA KDE")
+    for index, x in enumerate(lda_target_values):
+        ax.annotate(r'$x_{}$'.format(index + 1), xy=[x, 0], horizontalalignment='center', fontsize=10, color="blue")
+    ax.set_title("LDA Kernel Density Estimate")
+    ax.set_xlabel("Benchmark Value")
+    ax.set_ylabel("Density")
+    ax.legend()
+    plt.show()
+    # Plot KDE for SVM
+    fig, ax = plt.subplots(figsize=(12, 6))
+    sns.kdeplot(data=svm_target_values, bw_adjust=svm_bandwidth / 0.01, ax=ax, color="green", label="SVM KDE")
+    for index, x in enumerate(svm_target_values):
+        ax.annotate(r'$x_{}$'.format(index + 1), xy=[x, 0], horizontalalignment='center', fontsize=10, color="green")
+    ax.set_title("SVM Kernel Density Estimate")
+    ax.set_xlabel("Benchmark Value")
+    ax.set_ylabel("Density")
+    ax.legend()
+    plt.show()
 if __name__ == "__main__":
     plot_goldstein_price()
     plot_transformed_goldstein_price()
+    KDE_lda_and_svm(r"C:\Users\Lenovo\Desktop\lda.csv",r"C:\Users\Lenovo\Desktop\svm.csv")
