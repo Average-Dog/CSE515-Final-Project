@@ -88,7 +88,7 @@ def KDE_lda_and_svm(lda_file_path, svm_file_path):
     ax.set_ylabel("Density")
     ax.legend()
     plt.show()
-
+#5.find a transformation that makes the performance better behaved
 def transformed_KDE(lda_file_path, svm_file_path):
     lda_data = pd.read_csv(lda_file_path)
     svm_data = pd.read_csv(svm_file_path)
