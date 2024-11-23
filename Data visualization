@@ -62,7 +62,7 @@ def plot_transformed_goldstein_price():
     plt.ylabel('X2')
     plt.show()
 #4.Make a kernel density estimate of the distribution of the values for the lda and svm benchmarks
-def KDE_lda_and_svm(lda_file_path, svm_file_path, lda_bandwidth=200, svm_bandwidth=0.01):
+def KDE_lda_and_svm(lda_file_path, svm_file_path):
     # Load data
     lda_data = pd.read_csv(lda_file_path)
     svm_data = pd.read_csv(svm_file_path)
@@ -71,18 +71,18 @@ def KDE_lda_and_svm(lda_file_path, svm_file_path, lda_bandwidth=200, svm_bandwid
     sns.set()
     # Plot KDE for LDA
     fig, ax = plt.subplots(figsize=(12, 6))
-    sns.kdeplot(data=lda_target_values, bw_adjust=lda_bandwidth / 100, ax=ax, color="blue", label="LDA KDE")
+    sns.kdeplot(data=lda_target_values, bw_method='scott', ax=ax, color="blue", label="LDA KDE")
     ax.plot(lda_target_values, np.zeros_like(lda_target_values), 'o', markersize=5, color='blue', alpha=0.7, label="LDA Points")
-    ax.set_title("LDA Kernel Density Estimate with Points")
+    ax.set_title("LDA Kernel Density Estimate")
     ax.set_xlabel("Benchmark Value")
     ax.set_ylabel("Density")
     ax.legend()
     plt.show()
     # Plot KDE for SVM
     fig, ax = plt.subplots(figsize=(12, 6))
-    sns.kdeplot(data=svm_target_values, bw_adjust=svm_bandwidth / 0.01, ax=ax, color="green", label="SVM KDE")
+    sns.kdeplot(data=svm_target_values, bw_method='scott', ax=ax, color="green", label="SVM KDE")
     ax.plot(svm_target_values, np.zeros_like(svm_target_values), 'o', markersize=5, color='green', alpha=0.7, label="SVM Points")
-    ax.set_title("SVM Kernel Density Estimate with Points")
+    ax.set_title("SVM Kernel Density Estimate")
     ax.set_xlabel("Benchmark Value")
     ax.set_ylabel("Density")
     ax.legend()
