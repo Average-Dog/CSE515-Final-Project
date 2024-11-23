@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn.preprocessing import QuantileTransformer
 #1.Make a heatmap of the value of the Goldstein–Price function
 def plot_goldstein_price():
     # Define Goldstein–Price function
@@ -87,7 +88,38 @@ def KDE_lda_and_svm(lda_file_path, svm_file_path):
     ax.set_ylabel("Density")
     ax.legend()
     plt.show()
+
+def transformed_KDE(lda_file_path, svm_file_path):
+    lda_data = pd.read_csv(lda_file_path)
+    svm_data = pd.read_csv(svm_file_path)
+    lda_target_values = pd.to_numeric(lda_data.iloc[:, 3], errors='coerce').dropna().values
+    svm_target_values = pd.to_numeric(svm_data.iloc[:, 3], errors='coerce').dropna().values
+    transformer = QuantileTransformer(output_distribution='normal', n_quantiles=287)
+    lda_transformed = transformer.fit_transform(lda_target_values.reshape(-1, 1)).flatten()
+    svm_transformed = transformer.fit_transform(svm_target_values.reshape(-1, 1)).flatten()
+    sns.set()
+    # Plot KDE for LDA
+    fig, ax = plt.subplots(figsize=(12, 6))
+    sns.kdeplot(data=lda_transformed, bw_method='scott', ax=ax, color="blue", label="LDA KDE")
+    ax.plot(lda_transformed, np.zeros_like(lda_transformed), 'o', markersize=5, color='blue', alpha=0.7,
+            label="LDA Points")
+    ax.set_title("LDA Kernel Density Estimate")
+    ax.set_xlabel("Benchmark Value")
+    ax.set_ylabel("Density")
+    ax.legend()
+    plt.show()
+    # Plot KDE for SVM
+    fig, ax = plt.subplots(figsize=(12, 6))
+    sns.kdeplot(data=svm_transformed, bw_method='scott', ax=ax, color="green", label="SVM KDE")
+    ax.plot(svm_transformed, np.zeros_like(svm_transformed), 'o', markersize=5, color='green', alpha=0.7,
+            label="SVM Points")
+    ax.set_title("SVM Kernel Density Estimate")
+    ax.set_xlabel("Benchmark Value")
+    ax.set_ylabel("Density")
+    ax.legend()
+    plt.show()
 if __name__ == "__main__":
     plot_goldstein_price()
     plot_transformed_goldstein_price()
     KDE_lda_and_svm(r"C:\Users\Lenovo\Desktop\lda.csv",r"C:\Users\Lenovo\Desktop\svm.csv")
+    transformed_KDE(r"C:\Users\Lenovo\Desktop\lda.csv",r"C:\Users\Lenovo\Desktop\svm.csv")
