@@ -1,0 +1,8 @@
+# Ignore code folder
+code/
+
+# Ignore .idea folder
+.idea/
+
+# Allow everything else
+*
