@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.preprocessing import QuantileTransformer
+from sklearn.preprocessing import PowerTransformer
 #1.Make a heatmap of the value of the Goldstein–Price function
 def plot_goldstein_price():
     # Define Goldstein–Price function
@@ -88,15 +88,15 @@ def KDE_lda_and_svm(lda_file_path, svm_file_path):
     ax.set_ylabel("Density")
     ax.legend()
     plt.show()
-#5.find a transformation that makes the performance better behaved
+
 def transformed_KDE(lda_file_path, svm_file_path):
     lda_data = pd.read_csv(lda_file_path)
     svm_data = pd.read_csv(svm_file_path)
     lda_target_values = pd.to_numeric(lda_data.iloc[:, 3], errors='coerce').dropna().values
     svm_target_values = pd.to_numeric(svm_data.iloc[:, 3], errors='coerce').dropna().values
-    transformer = QuantileTransformer(output_distribution='normal', n_quantiles=287)
-    lda_transformed = transformer.fit_transform(lda_target_values.reshape(-1, 1)).flatten()
-    svm_transformed = transformer.fit_transform(svm_target_values.reshape(-1, 1)).flatten()
+    power_transformer = PowerTransformer(method='box-cox', standardize=True)
+    lda_transformed = power_transformer.fit_transform(lda_target_values.reshape(-1, 1)).flatten()
+    svm_transformed = power_transformer.fit_transform(svm_target_values.reshape(-1, 1)).flatten()
     sns.set()
     # Plot KDE for LDA
     fig, ax = plt.subplots(figsize=(12, 6))
