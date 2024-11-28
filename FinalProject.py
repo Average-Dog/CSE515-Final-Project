@@ -329,12 +329,11 @@ def best_model(D):
 
     print(f"Best Model: {best_kernel}, BIC score: {best_bic}")
 
-# Performasimilarsearchforthesvmandldadatasets
-def file_search(file_path):
+def file_search(file_path, n_samples=32, random_state=42):
     lda_data = pd.read_csv(file_path)
-    X = pd.to_numeric(lda_data.iloc[:, 3], errors='coerce').dropna().values.reshape(-1, 1)
-    y = np.zeros_like(X)
-
+    sampled_data = lda_data.sample(n=n_samples, random_state=random_state)
+    X = sampled_data.iloc[:, :3].values
+    y = sampled_data.iloc[:, 3].values
     models = [
         (ConstantKernel() * RBF(), "RBF"),
         (ConstantKernel() * Matern(), "Matern"),
@@ -342,6 +341,7 @@ def file_search(file_path):
         (ConstantKernel() * WhiteKernel(), "WhiteKernel"),
         (ConstantKernel() * DotProduct(), "DotProduct")
     ]
+
     best_bic = float('inf')
     best_model = None
     best_kernel = None
@@ -349,14 +349,126 @@ def file_search(file_path):
     for kernel, name in models:
         gp = GPR(kernel=kernel, alpha=0.001, normalize_y=True)
         gp.fit(X, y)
-        bic = BIC(gp, D)
+        bic = BIC(gp, sampled_data)
         if bic < best_bic:
             best_bic = bic
             best_model = gp
             best_kernel = name
 
     print(f"For {file_path}, best Model: {best_kernel}, BIC score: {best_bic}")
+    return best_kernel, best_bic, best_model
+def fit_gaussian_process_with_different_kernel(D,kernel_1):
+    X = D[['x1', 'x2']]
+    y = D['data']
+    kernel_1=kernel_1
+    kernel = ConstantKernel() * kernel_1
+    gp = GPR(kernel= kernel, alpha=0.001, normalize_y=True)
+    gp.fit(X, y)
+    log_marginal_likelihood = gp.log_marginal_likelihood()
+    marginal_likelihood = np.exp(log_marginal_likelihood)
+    return gp
+# Plot the posterior mean and standard deviation heatmaps
+def gp_heatmap(D, gp_model):
+    x1 = np.linspace(-2, 2, 1000)
+    x2 = np.linspace(-2, 2, 1000)
+    X1, X2 = np.meshgrid(x1, x2)
+    grid_points = np.c_[X1.ravel(), X2.ravel()]
 
+    y_mean, y_std = gp_model.predict(grid_points, return_std=True)
+    print(min(y_std))
+    Z_mean = y_mean.reshape(X1.shape)
+    Z_std = y_std.reshape(X1.shape)
+    # mean heatmap
+    plt.figure(figsize=(8, 6))
+    ax1 = sns.heatmap(Z_mean, cbar_kws={'label': 'Predicted Value'})
+    tick_positions = np.linspace(0, len(x1) - 1, 5)
+    tick_labels = [-2, -1, 0, 1, 2]
+    ax1.set_xticks(tick_positions)
+    ax1.set_xticklabels(tick_labels)
+    ax1.set_yticks(tick_positions)
+    ax1.set_yticklabels(tick_labels)
+    plt.title("GP Posterior Mean Heatmap")
+    plt.xlabel('X1')
+    plt.ylabel('X2')
+    plt.show()
+
+    # std heatmap
+    plt.figure(figsize=(8, 6))
+    ax2 = sns.heatmap(Z_std, cbar_kws={'label': 'Predicted Value'})
+    ax2.set_xticks(tick_positions)
+    ax2.set_xticklabels(tick_labels)
+    ax2.set_yticks(tick_positions)
+    ax2.set_yticklabels(tick_labels)
+    plt.title("GP Posterior Standard Deviation Heatmap")
+    plt.xlabel('X1')
+    plt.ylabel('X2')
+    plt.show()
+#kenerl density
+def EI(X, gp_model, y_best, minimize=True):
+    mu, sigma = gp_model.predict(X, return_std=True)
+    sigma = np.maximum(sigma, 1e-8)
+    if minimize:
+        mu = -mu
+    z = (y_best - mu) / sigma
+    ei = sigma * (z * norm.cdf(z) + norm.pdf(z))
+    return ei
+def gp_heatmap_for_training_points(gp_model, D):
+    X = D[['x1', 'x2']].values
+    y = D['data'].values
+    y_mean, y_std = gp_model.predict(X, return_std=True)
+    plt.figure(figsize=(8, 6))
+    scatter = plt.scatter(X[:, 0], X[:, 1], c=y_mean, s=100)
+    plt.colorbar(scatter, label='Posterior Mean')
+    plt.title("Posterior Mean at Training Points")
+    plt.xlabel("X1")
+    plt.ylabel("X2")
+    plt.show()
+    plt.figure(figsize=(8, 6))
+    scatter = plt.scatter(X[:, 0], X[:, 1], c=y_std, s=100)
+    plt.colorbar(scatter, label='Posterior Standard Deviation')
+    plt.title("Posterior Standard Deviation at Training Points")
+    plt.xlabel("X1")
+    plt.ylabel("X2")
+    plt.show()
+
+# Plot EI heatmap and mark maximum EI
+# def plot_ei_for_training_points(gp_model, D, y_best):
+#     X = D[['x1', 'x2']].values
+#     ei_values = EI(X, gp_model, y_best, minimize=True)
+#     max_idx = np.argmax(ei_values)
+#     max_point = X[max_idx]
+#     max_ei = ei_values[max_idx]
+#     plt.figure(figsize=(8, 6))
+#     scatter = plt.scatter(D['x1'], D['x2'], c=ei_values, s=100)
+#     plt.colorbar(scatter, label='Expected Improvement (EI)')
+#     plt.scatter(max_point[0], max_point[1], color='red', s=150, label='Max EI', marker='X')
+#     plt.title("Expected Improvement (EI) at Training Points")
+#     plt.xlabel("X1")
+#     plt.ylabel("X2")
+#     plt.legend()
+#     plt.show()
+#     print(f"Maximum EI: {max_ei:.4f} at point X1={max_point[0]:.3f}, X2={max_point[1]:.3f}")
+#     return max_point
+def plot_ei_for_full_region(gp_model, y_best):
+    x1 = np.linspace(-2, 2, 500)
+    x2 = np.linspace(-2, 2, 500)
+    X1, X2 = np.meshgrid(x1, x2)
+    grid_points = np.c_[X1.ravel(), X2.ravel()]
+    ei_values =EI(grid_points, gp_model, y_best, minimize=True)
+    max_idx = np.argmax(ei_values)
+    max_ei_point = grid_points[max_idx]
+    max_ei = ei_values[max_idx]
+    plt.figure(figsize=(8, 6))
+    scatter = plt.scatter(grid_points[:, 0], grid_points[:, 1], c=ei_values, s=1)
+    plt.colorbar(scatter, label='Expected Improvement (EI)')
+    plt.scatter(max_ei_point[0], max_ei_point[1], color='red', s=150, label='Max EI', marker='X')
+    plt.title("Expected Improvement (EI) in Full Region")
+    plt.xlabel("X1")
+    plt.ylabel("X2")
+    plt.legend()
+    plt.show()
+    print(f"Maximum EI: {max_ei:.4f} at point X1={max_ei_point[0]:.3f}, X2={max_ei_point[1]:.3f}")
+    return max_ei_point
 if __name__ == "__main__":
     # Data visualization
     # plot_goldstein_price()
@@ -398,7 +510,15 @@ if __name__ == "__main__":
     # Best Model: RBF, BIC score: 28.324912500963972
 
     file_search('svm.csv')
-    #For svm.csv, best Model: WhiteKernel, BIC score: -7085.828007683744
+    #For svm.csv, best Model: Matern, BIC score: 61.06260490629114
 
     file_search('lda.csv')
-    #For lda.csv, best Model: WhiteKernel, BIC score: -1448.1235465027933
+    #For lda.csv, best Model: RationalQuadratic, BIC score: 84.95449518671941
+    #bayesian optimization
+    D = goldstein_price_dataset()
+    gp_model=fit_gaussian_process_with_different_kernel(D,RBF())
+    gp_heatmap_for_training_points(gp_model, D)
+    y_best = np.min(D['data'])
+    max_ei_point = plot_ei_for_full_region(gp_model, y_best)
+    print(f"Recommended next observation point: {max_ei_point}")
+    #it seems like a good next observation location
