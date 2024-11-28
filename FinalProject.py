@@ -187,7 +187,6 @@ def gp_heatmap(D, gp_model):
     plt.ylabel('X2')
     plt.show()
 
-#kenerl density
 def kde_z_scores(D, gp_model):
     x1 = D['x1']
     x2 = D['x2']
@@ -279,7 +278,6 @@ def log_gp_heatmap(log_D, log_gp):
     plt.ylabel('X2')
     plt.show()
 
-#kenerl density
 def log_kde_z_scores(log_D, log_gp):
     x1 = log_D['x1']
     x2 = log_D['x2']
