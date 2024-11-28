@@ -514,6 +514,7 @@ if __name__ == "__main__":
 
     file_search('lda.csv')
     #For lda.csv, best Model: RationalQuadratic, BIC score: 84.95449518671941
+    
     #bayesian optimization
     D = goldstein_price_dataset()
     gp_model=fit_gaussian_process_with_different_kernel(D,RBF())
