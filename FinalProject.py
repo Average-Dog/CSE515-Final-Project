@@ -144,7 +144,7 @@ def fit_gaussian_process(D):
     gp = GPR(kernel= kernel, alpha=0.001, normalize_y=True)
     gp.fit(X, y)
     log_marginal_likelihood = gp.log_marginal_likelihood()
-    marginal_likelihood = 2**log_marginal_likelihood
+    marginal_likelihood =np.exp(log_marginal_likelihood)
     print("Marginal Likelihood: ", marginal_likelihood)
 
     return gp
@@ -202,6 +202,12 @@ def kde_z_scores(D, gp_model):
     plt.xlabel("Z-Score")
     plt.ylabel("Density")
     plt.show()
+    ks_stat, p_value = kstest(z_scores, 'norm')
+    print(f"KS Statistic: {ks_stat}, P-value: {p_value}")
+    if p_value > 0.05:
+        print("The Z-scores distribution is consistent with a standard normal distribution.")
+    else:
+        print("The Z-scores distribution significantly deviates from a standard normal distribution.")
 
 #Repeat the above using a log transformation to the output of the Goldstein–Price function. Does the marginal likelihood improve? Does the model appear better calibrated?
 def log_goldstein_price(x1, x2):
@@ -224,7 +230,7 @@ def fit_log_gaussian_process(log_D):
     log_gp = GPR(kernel= kernel, alpha=0.001, normalize_y=True)
     log_gp.fit(X, y)
     log_marginal_likelihood = log_gp.log_marginal_likelihood()
-    marginal_likelihood = 2**log_marginal_likelihood
+    marginal_likelihood = np.exp(log_marginal_likelihood)
     print("Log Marginal Likelihood: ", marginal_likelihood)
 
     return log_gp
@@ -254,6 +260,12 @@ def log_gp_heatmap(log_D, log_gp):
     plt.xlabel('X1')
     plt.ylabel('X2')
     plt.show()
+    ks_stat, p_value = kstest(z_scores, 'norm')
+    print(f"KS Statistic: {ks_stat}, P-value: {p_value}")
+    if p_value > 0.05:
+        print("The Z-scores distribution is consistent with a standard normal distribution.")
+    else:
+        print("The Z-scores distribution significantly deviates from a standard normal distribution.")
 
     # std heatmap
     plt.figure(figsize=(8, 6))
