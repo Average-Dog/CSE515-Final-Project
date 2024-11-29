@@ -567,20 +567,20 @@ if __name__ == "__main__":
     #it seems like a good next observation location
     #Maximum EI: 627904.7684 at point X1 = -1.123, X2 = 0.182
     #svm
-    svm_labeled_data = labeled_data_for_file(r"C:\Users\Lenovo\Desktop\svm.csv", num_initial=5, num_iterations=30)
+    svm_labeled_data = labeled_data_for_file('svm.csv', num_initial=5, num_iterations=30)
     print("Labeled data in SVM:")
     print(svm_labeled_data)
-    svm_data = pd.read_csv(r"C:\Users\Lenovo\Desktop\svm.csv")
+    svm_data = pd.read_csv('svm.csv')
     f_min_svm = svm_data.iloc[:, 3].min()
     svm_labeled_data_gap = gap(svm_labeled_data, f_min_svm)
     print("Gap for SVM:")
     print(svm_labeled_data_gap)
     # Gap for SVM:0.5547493403693948
     #lda
-    lda_labeled_data = labeled_data_for_file(r"C:\Users\Lenovo\Desktop\lda.csv", num_initial=5, num_iterations=30)
+    lda_labeled_data = labeled_data_for_file('lda.csv', num_initial=5, num_iterations=30)
     print("Labeled data in LDA:")
     print(lda_labeled_data)
-    lda_data = pd.read_csv(r"C:\Users\Lenovo\Desktop\lda.csv")
+    lda_data = pd.read_csv('lda.csv')
     f_min_lda = lda_data.iloc[:, 3].min()
     lda_labeled_data_gap = gap(lda_labeled_data, f_min_lda)
     print("Gap for LDA:")
