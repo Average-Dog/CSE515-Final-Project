@@ -367,8 +367,8 @@ def fit_gaussian_process_with_different_kernel(D,kernel_1):
     return gp
 # Plot the posterior mean and standard deviation heatmaps
 def gp_heatmap(D, gp_model):
-    x1 = np.linspace(-2, 2, 1000)
-    x2 = np.linspace(-2, 2, 1000)
+    x1 = np.linspace(-2, 2, 500)
+    x2 = np.linspace(-2, 2, 500)
     X1, X2 = np.meshgrid(x1, x2)
     grid_points = np.c_[X1.ravel(), X2.ravel()]
 
@@ -401,12 +401,12 @@ def gp_heatmap(D, gp_model):
     plt.xlabel('X1')
     plt.ylabel('X2')
     plt.show()
-#kenerl density
 def EI(X, gp_model, y_best, minimize=True):
     mu, sigma = gp_model.predict(X, return_std=True)
     sigma = np.maximum(sigma, 1e-8)
     if minimize:
         mu = -mu
+        y_best = -y_best
     z = (y_best - mu) / sigma
     ei = sigma * (z * norm.cdf(z) + norm.pdf(z))
     return ei
@@ -429,30 +429,12 @@ def gp_heatmap_for_training_points(gp_model, D):
     plt.ylabel("X2")
     plt.show()
 
-# Plot EI heatmap and mark maximum EI
-# def plot_ei_for_training_points(gp_model, D, y_best):
-#     X = D[['x1', 'x2']].values
-#     ei_values = EI(X, gp_model, y_best, minimize=True)
-#     max_idx = np.argmax(ei_values)
-#     max_point = X[max_idx]
-#     max_ei = ei_values[max_idx]
-#     plt.figure(figsize=(8, 6))
-#     scatter = plt.scatter(D['x1'], D['x2'], c=ei_values, s=100)
-#     plt.colorbar(scatter, label='Expected Improvement (EI)')
-#     plt.scatter(max_point[0], max_point[1], color='red', s=150, label='Max EI', marker='X')
-#     plt.title("Expected Improvement (EI) at Training Points")
-#     plt.xlabel("X1")
-#     plt.ylabel("X2")
-#     plt.legend()
-#     plt.show()
-#     print(f"Maximum EI: {max_ei:.4f} at point X1={max_point[0]:.3f}, X2={max_point[1]:.3f}")
-#     return max_point
 def plot_ei_for_full_region(gp_model, y_best):
-    x1 = np.linspace(-2, 2, 500)
-    x2 = np.linspace(-2, 2, 500)
+    x1 = np.linspace(-2, 2, 1000)
+    x2 = np.linspace(-2, 2, 1000)
     X1, X2 = np.meshgrid(x1, x2)
     grid_points = np.c_[X1.ravel(), X2.ravel()]
-    ei_values =EI(grid_points, gp_model, y_best, minimize=True)
+    ei_values =EI(grid_points, gp_model, y_best, minimize=False)
     max_idx = np.argmax(ei_values)
     max_ei_point = grid_points[max_idx]
     max_ei = ei_values[max_idx]
@@ -467,6 +449,68 @@ def plot_ei_for_full_region(gp_model, y_best):
     plt.show()
     print(f"Maximum EI: {max_ei:.4f} at point X1={max_ei_point[0]:.3f}, X2={max_ei_point[1]:.3f}")
     return max_ei_point
+
+def labeled_data_for_file(file_path, num_initial=5, num_iterations=30,random_seed=42):
+    np.random.seed(random_seed)
+    data = pd.read_csv(file_path).iloc[:, :-1]
+    initial_indices = np.random.choice(data.index, size=num_initial, replace=False)
+    labeled_data = data.loc[initial_indices]
+    unlabeled_data = data.drop(index=initial_indices)
+    kernel = ConstantKernel() * Matern()
+    gp_model = GPR(kernel=kernel, alpha=0.001, normalize_y=True)
+
+    for iteration in range(num_iterations):
+        X_labeled = labeled_data.iloc[:, :3].values
+        y_labeled = labeled_data.iloc[:, 3].values
+        gp_model.fit(X_labeled, y_labeled)
+        y_best = np.min(y_labeled)
+        X_unlabeled = unlabeled_data.iloc[:, :-1].values
+        ei_values = EI(X_unlabeled, gp_model, y_best, minimize=False)
+        max_idx = np.argmax(ei_values)
+        next_point = unlabeled_data.iloc[max_idx]
+        labeled_data = pd.concat([labeled_data, next_point.to_frame().T], ignore_index=True)
+        unlabeled_data = unlabeled_data.drop(index=next_point.name)
+    labeled_data.columns = ['x1', 'x2', 'x3', 'values']
+    return labeled_data
+def labeled_data_for_Goldstein(num_initial=5, num_iterations=30,random_seed=42):
+    np.random.seed(random_seed)
+    initial_points = np.random.uniform(-2, 2, size=(num_initial, 2))
+    initial_values = np.array([goldstein_price(x1, x2) for x1, x2 in initial_points])
+    labeled_data = pd.DataFrame(initial_points, columns=['x1', 'x2'])
+    labeled_data['values'] = initial_values
+    kernel = ConstantKernel() * RBF()
+    gp_model = GPR(kernel=kernel, alpha=0.001, normalize_y=True)
+
+    for iteration in range(num_iterations):
+        X_labeled = labeled_data[['x1', 'x2']].values
+        y_labeled = labeled_data['values'].values
+        gp_model.fit(X_labeled, y_labeled)
+        x1 = np.linspace(-2, 2, 1000)
+        x2 = np.linspace(-2, 2, 1000)
+        X1, X2 = np.meshgrid(x1, x2)
+        candidates = np.c_[X1.ravel(), X2.ravel()]
+        y_best = np.min(y_labeled)
+        ei_values = EI(candidates, gp_model, y_best, minimize=False)
+        max_idx = np.argmax(ei_values)
+        next_point = candidates[max_idx]
+        next_value = goldstein_price(next_point[0], next_point[1])
+        new_row = pd.DataFrame([[next_point[0], next_point[1], next_value]], columns=labeled_data.columns)
+        labeled_data = pd.concat([labeled_data, new_row], ignore_index=True)
+
+    return labeled_data
+def find_min_on_grid(func, bounds, resolution=1000):
+    x1 = np.linspace(bounds[0][0], bounds[0][1], resolution)
+    x2 = np.linspace(bounds[1][0], bounds[1][1], resolution)
+    X1, X2 = np.meshgrid(x1, x2)
+    grid_points = np.c_[X1.ravel(), X2.ravel()]
+    values = np.array([func(x1, x2) for x1, x2 in grid_points])
+    f_min = np.min(values)
+    return f_min
+def gap(labeled_data, f_min):
+    f_best_initial = labeled_data.iloc[:5]['values'].min()
+    f_best_found = labeled_data['values'].min()
+    gap = (f_best_found - f_best_initial) / (f_min - f_best_initial)
+    return gap
 if __name__ == "__main__":
     # Data visualization
     # plot_goldstein_price()
@@ -521,3 +565,34 @@ if __name__ == "__main__":
     max_ei_point = plot_ei_for_full_region(gp_model, y_best)
     print(f"Recommended next observation point: {max_ei_point}")
     #it seems like a good next observation location
+    #Maximum EI: 627904.7684 at point X1 = -1.123, X2 = 0.182
+    #svm
+    svm_labeled_data = labeled_data_for_file(r"C:\Users\Lenovo\Desktop\svm.csv", num_initial=5, num_iterations=30)
+    print("Labeled data in SVM:")
+    print(svm_labeled_data)
+    svm_data = pd.read_csv(r"C:\Users\Lenovo\Desktop\svm.csv")
+    f_min_svm = svm_data.iloc[:, 3].min()
+    svm_labeled_data_gap = gap(svm_labeled_data, f_min_svm)
+    print("Gap for SVM:")
+    print(svm_labeled_data_gap)
+    # Gap for SVM:0.5547493403693948
+    #lda
+    lda_labeled_data = labeled_data_for_file(r"C:\Users\Lenovo\Desktop\lda.csv", num_initial=5, num_iterations=30)
+    print("Labeled data in LDA:")
+    print(lda_labeled_data)
+    lda_data = pd.read_csv(r"C:\Users\Lenovo\Desktop\lda.csv")
+    f_min_lda = lda_data.iloc[:, 3].min()
+    lda_labeled_data_gap = gap(lda_labeled_data, f_min_lda)
+    print("Gap for LDA:")
+    print(lda_labeled_data_gap)
+    # Gap for LDA:1.0
+    #Goldstein
+    Goldstein_labeled_data=labeled_data_for_Goldstein(num_initial=5, num_iterations=30)
+    print("Labeled data in Goldstein–Price:")
+    print(Goldstein_labeled_data)
+    bounds = [[-2, 2], [-2, 2]]
+    f_min= find_min_on_grid(goldstein_price, bounds)
+    Goldstein_labeled_data_gap = gap(Goldstein_labeled_data, f_min)
+    print("Gap for Goldstein–Price:")
+    print(Goldstein_labeled_data_gap)
+    # Gap for Goldstein–Price:0.9993656638297461
