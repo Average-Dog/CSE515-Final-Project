@@ -498,7 +498,9 @@ def labeled_data_for_Goldstein(num_initial=5, num_iterations=30,random_seed=42):
         labeled_data = pd.concat([labeled_data, new_row], ignore_index=True)
 
     return labeled_data
-def find_min_on_grid(func, bounds, resolution=1000):
+def find_min_on_grid(func):
+    bounds = [[-2, 2], [-2, 2]]
+    resolution = 1000
     x1 = np.linspace(bounds[0][0], bounds[0][1], resolution)
     x2 = np.linspace(bounds[1][0], bounds[1][1], resolution)
     X1, X2 = np.meshgrid(x1, x2)
@@ -590,8 +592,7 @@ if __name__ == "__main__":
     Goldstein_labeled_data=labeled_data_for_Goldstein(num_initial=5, num_iterations=30)
     print("Labeled data in Goldstein–Price:")
     print(Goldstein_labeled_data)
-    bounds = [[-2, 2], [-2, 2]]
-    f_min= find_min_on_grid(goldstein_price, bounds)
+    f_min= find_min_on_grid(goldstein_price)
     Goldstein_labeled_data_gap = gap(Goldstein_labeled_data, f_min)
     print("Gap for Goldstein–Price:")
     print(Goldstein_labeled_data_gap)
