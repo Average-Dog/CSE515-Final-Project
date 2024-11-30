@@ -450,15 +450,16 @@ def plot_ei_for_full_region(gp_model, y_best):
     print(f"Maximum EI: {max_ei:.4f} at point X1={max_ei_point[0]:.3f}, X2={max_ei_point[1]:.3f}")
     return max_ei_point
 
-def labeled_data_for_file(file_path, num_initial=5, num_iterations=30,random_seed=42):
+def labeled_data_for_file(file_path, num_initial=5, num_iterations=30,random_seed=42,kernel_1=Matern()):
     np.random.seed(random_seed)
     data = pd.read_csv(file_path).iloc[:, :-1]
     initial_indices = np.random.choice(data.index, size=num_initial, replace=False)
-    labeled_data = data.loc[initial_indices]
+    initial_data = data.loc[initial_indices]
+    labeled_data = initial_data.copy()
     unlabeled_data = data.drop(index=initial_indices)
-    kernel = ConstantKernel() * Matern()
+    kernel = ConstantKernel() * kernel_1
     gp_model = GPR(kernel=kernel, alpha=0.001, normalize_y=True)
-
+    new_points = []
     for iteration in range(num_iterations):
         X_labeled = labeled_data.iloc[:, :3].values
         y_labeled = labeled_data.iloc[:, 3].values
@@ -468,19 +469,23 @@ def labeled_data_for_file(file_path, num_initial=5, num_iterations=30,random_see
         ei_values = EI(X_unlabeled, gp_model, y_best, minimize=False)
         max_idx = np.argmax(ei_values)
         next_point = unlabeled_data.iloc[max_idx]
+        new_points.append(next_point)
         labeled_data = pd.concat([labeled_data, next_point.to_frame().T], ignore_index=True)
         unlabeled_data = unlabeled_data.drop(index=next_point.name)
-    labeled_data.columns = ['x1', 'x2', 'x3', 'values']
-    return labeled_data
-def labeled_data_for_Goldstein(num_initial=5, num_iterations=30,random_seed=42):
+    new_points_df = pd.DataFrame(new_points)
+    new_points_df.columns = ['x1', 'x2', 'x3', 'values']
+    initial_data.columns = ['x1', 'x2', 'x3', 'values']
+    return initial_data, new_points_df
+def labeled_data_for_Goldstein(num_initial=5, num_iterations=30, random_seed=42):
     np.random.seed(random_seed)
     initial_points = np.random.uniform(-2, 2, size=(num_initial, 2))
     initial_values = np.array([goldstein_price(x1, x2) for x1, x2 in initial_points])
-    labeled_data = pd.DataFrame(initial_points, columns=['x1', 'x2'])
-    labeled_data['values'] = initial_values
+    initial_data = pd.DataFrame(initial_points, columns=['x1', 'x2'])
+    initial_data['values'] = initial_values
     kernel = ConstantKernel() * RBF()
     gp_model = GPR(kernel=kernel, alpha=0.001, normalize_y=True)
-
+    new_points = []
+    labeled_data = initial_data.copy()
     for iteration in range(num_iterations):
         X_labeled = labeled_data[['x1', 'x2']].values
         y_labeled = labeled_data['values'].values
@@ -494,10 +499,11 @@ def labeled_data_for_Goldstein(num_initial=5, num_iterations=30,random_seed=42):
         max_idx = np.argmax(ei_values)
         next_point = candidates[max_idx]
         next_value = goldstein_price(next_point[0], next_point[1])
+        new_points.append([next_point[0], next_point[1], next_value])
         new_row = pd.DataFrame([[next_point[0], next_point[1], next_value]], columns=labeled_data.columns)
         labeled_data = pd.concat([labeled_data, new_row], ignore_index=True)
-
-    return labeled_data
+    new_points_df = pd.DataFrame(new_points, columns=['x1', 'x2', 'values'])
+    return initial_data, new_points_df
 def find_min_on_grid(func):
     bounds = [[-2, 2], [-2, 2]]
     resolution = 1000
@@ -508,9 +514,9 @@ def find_min_on_grid(func):
     values = np.array([func(x1, x2) for x1, x2 in grid_points])
     f_min = np.min(values)
     return f_min
-def gap(labeled_data, f_min):
-    f_best_initial = labeled_data.iloc[:5]['values'].min()
-    f_best_found = labeled_data['values'].min()
+def gap(initial_data, new_points, f_min):
+    f_best_initial = initial_data['values'].min()
+    f_best_found = pd.concat([initial_data, new_points])['values'].min()
     gap = (f_best_found - f_best_initial) / (f_min - f_best_initial)
     return gap
 if __name__ == "__main__":
@@ -568,32 +574,38 @@ if __name__ == "__main__":
     print(f"Recommended next observation point: {max_ei_point}")
     #it seems like a good next observation location
     #Maximum EI: 627904.7684 at point X1 = -1.123, X2 = 0.182
-    #svm
-    svm_labeled_data = labeled_data_for_file('svm.csv', num_initial=5, num_iterations=30)
+     # svm
+    svm_initial_data,svm_labeled_data = labeled_data_for_file(r"C:\Users\Lenovo\Desktop\svm.csv", num_initial=5, num_iterations=30)
+    print("Initial Data in SVM")
+    print(svm_initial_data)
     print("Labeled data in SVM:")
     print(svm_labeled_data)
-    svm_data = pd.read_csv('svm.csv')
+    svm_data = pd.read_csv(r"C:\Users\Lenovo\Desktop\svm.csv")
     f_min_svm = svm_data.iloc[:, 3].min()
-    svm_labeled_data_gap = gap(svm_labeled_data, f_min_svm)
+    svm_labeled_data_gap = gap(svm_initial_data,svm_labeled_data, f_min_svm)
     print("Gap for SVM:")
     print(svm_labeled_data_gap)
     # Gap for SVM:0.5547493403693948
-    #lda
-    lda_labeled_data = labeled_data_for_file('lda.csv', num_initial=5, num_iterations=30)
+    # lda
+    lda_initial_data,lda_labeled_data = labeled_data_for_file(r"C:\Users\Lenovo\Desktop\lda.csv", num_initial=5, num_iterations=30,kernel_1=RationalQuadratic())
+    print("Initial Data in LDA")
+    print(lda_initial_data)
     print("Labeled data in LDA:")
     print(lda_labeled_data)
-    lda_data = pd.read_csv('lda.csv')
+    lda_data = pd.read_csv(r"C:\Users\Lenovo\Desktop\lda.csv")
     f_min_lda = lda_data.iloc[:, 3].min()
-    lda_labeled_data_gap = gap(lda_labeled_data, f_min_lda)
+    lda_labeled_data_gap = gap(lda_initial_data,lda_labeled_data, f_min_lda)
     print("Gap for LDA:")
     print(lda_labeled_data_gap)
     # Gap for LDA:1.0
-    #Goldstein
-    Goldstein_labeled_data=labeled_data_for_Goldstein(num_initial=5, num_iterations=30)
+    # Goldstein
+    Goldstein_initial_data,Goldstein_labeled_data = labeled_data_for_Goldstein(num_initial=5, num_iterations=30)
+    print("Initial Data in Goldstein:")
+    print(Goldstein_initial_data)
     print("Labeled data in Goldstein–Price:")
     print(Goldstein_labeled_data)
-    f_min= find_min_on_grid(goldstein_price)
-    Goldstein_labeled_data_gap = gap(Goldstein_labeled_data, f_min)
+    f_min = find_min_on_grid(goldstein_price)
+    Goldstein_labeled_data_gap = gap(Goldstein_initial_data,Goldstein_labeled_data, f_min)
     print("Gap for Goldstein–Price:")
     print(Goldstein_labeled_data_gap)
     # Gap for Goldstein–Price:0.9993656638297461
