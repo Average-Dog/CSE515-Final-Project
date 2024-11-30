@@ -519,6 +519,48 @@ def gap(initial_data, new_points, f_min):
     f_best_found = pd.concat([initial_data, new_points])['values'].min()
     gap = (f_best_found - f_best_initial) / (f_min - f_best_initial)
     return gap
+def labeled_data_optimization_with_baseline(
+        func=None,
+        file_path=None,
+        num_initial=5,
+        num_iterations=30,
+        random_search_budget=150,
+        num_runs=20,
+        kernel_1=Matern()
+):
+    bounds = np.array([[-2, 2], [-2, 2]]) if func is not None else None
+    bayesian_runs = []
+    random_search_runs = []
+    for run in range(num_runs):
+        random_seed = np.random.randint(0, 100000)
+        if file_path:
+            initial_data_bayes, new_points_bayes = labeled_data_for_file(
+                file_path, num_initial, num_iterations, random_seed=random_seed, kernel_1=kernel_1
+            )
+        elif func is not None:
+            initial_data_bayes, new_points_bayes = labeled_data_for_Goldstein(
+                num_initial, num_iterations, random_seed=random_seed
+            )
+        else:
+            raise ValueError("Either `func` or `file_path` must be provided.")
+        bayesian_runs.append((initial_data_bayes, new_points_bayes))
+
+        labeled_data_random = initial_data_bayes.copy()
+        new_points_random = []
+        for _ in range(random_search_budget - len(initial_data_bayes)):
+            if func is not None:
+                random_point = np.random.uniform(bounds[:, 0], bounds[:, 1], size=(1, bounds.shape[0]))
+                random_value = func(*random_point[0])
+                new_points_random.append([*random_point[0], random_value])
+            else:
+                file_without_last_col = file_path.iloc[:, :-1]
+                random_idx = np.random.choice(file_without_last_col.shape[0], size=1)
+                random_row = file_without_last_col.iloc[random_idx].values.flatten().tolist()
+                new_points_random.append(random_row)
+        new_points_random_df = pd.DataFrame(new_points_random, columns=labeled_data_random.columns)
+        random_search_runs.append((initial_data_bayes, new_points_random_df))
+
+    return bayesian_runs, random_search_runs
 if __name__ == "__main__":
     # Data visualization
     # plot_goldstein_price()
@@ -575,24 +617,24 @@ if __name__ == "__main__":
     #it seems like a good next observation location
     #Maximum EI: 627904.7684 at point X1 = -1.123, X2 = 0.182
      # svm
-    svm_initial_data,svm_labeled_data = labeled_data_for_file(r"C:\Users\Lenovo\Desktop\svm.csv", num_initial=5, num_iterations=30)
+    svm_initial_data,svm_labeled_data = labeled_data_for_file('svm.csv', num_initial=5, num_iterations=30)
     print("Initial Data in SVM")
     print(svm_initial_data)
     print("Labeled data in SVM:")
     print(svm_labeled_data)
-    svm_data = pd.read_csv(r"C:\Users\Lenovo\Desktop\svm.csv")
+    svm_data = pd.read_csv('svm.csv')
     f_min_svm = svm_data.iloc[:, 3].min()
     svm_labeled_data_gap = gap(svm_initial_data,svm_labeled_data, f_min_svm)
     print("Gap for SVM:")
     print(svm_labeled_data_gap)
     # Gap for SVM:0.5547493403693948
     # lda
-    lda_initial_data,lda_labeled_data = labeled_data_for_file(r"C:\Users\Lenovo\Desktop\lda.csv", num_initial=5, num_iterations=30,kernel_1=RationalQuadratic())
+    lda_initial_data,lda_labeled_data = labeled_data_for_file('lda.csv', num_initial=5, num_iterations=30,kernel_1=RationalQuadratic())
     print("Initial Data in LDA")
     print(lda_initial_data)
     print("Labeled data in LDA:")
     print(lda_labeled_data)
-    lda_data = pd.read_csv(r"C:\Users\Lenovo\Desktop\lda.csv")
+    lda_data = pd.read_csv('lda.csv')
     f_min_lda = lda_data.iloc[:, 3].min()
     lda_labeled_data_gap = gap(lda_initial_data,lda_labeled_data, f_min_lda)
     print("Gap for LDA:")
@@ -609,3 +651,26 @@ if __name__ == "__main__":
     print("Gap for Goldstein–Price:")
     print(Goldstein_labeled_data_gap)
     # Gap for Goldstein–Price:0.9993656638297461
+    Goldstein_bayesian_runs, Goldstein_random_search_runs = labeled_data_optimization_with_baseline(
+        func=goldstein_price,
+        num_initial=5,
+        num_iterations=30,
+        random_search_budget=150,
+        num_runs=20
+    )
+    SVM_bayesian_runs, SVM_random_search_runs = labeled_data_optimization_with_baseline(
+        file_path=r"C:\Users\Lenovo\Desktop\svm.csv",
+        num_initial=5,
+        num_iterations=30,
+        random_search_budget=150,
+        num_runs=20,
+        kernel_1=Matern()
+    )
+    LDA_bayesian_runs, LDA_random_search_runs = labeled_data_optimization_with_baseline(
+        file_path=r"C:\Users\Lenovo\Desktop\lda.csv",
+        num_initial=5,
+        num_iterations=30,
+        random_search_budget=150,
+        num_runs=20,
+        kernel_1=RationalQuadratic()
+    )
