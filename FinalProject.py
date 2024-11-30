@@ -561,13 +561,65 @@ def labeled_data_optimization_with_baseline(
         random_search_runs.append((initial_data_bayes, new_points_random_df))
 
     return bayesian_runs, random_search_runs
+    def calculate_gap_single_run(initial_data, new_points, f_min, max_observations):
+    gaps = []
+    for i in range(1, max_observations + 1):
+        truncated_new_points = new_points.iloc[:i]
+        f_best_initial = initial_data['values'].min()
+        f_best_found = pd.concat([initial_data, truncated_new_points])['values'].min()
+        denominator = f_min - f_best_initial
+        if abs(denominator) < 1e-8:
+            gaps.append(1)
+        else:
+            gap = (f_best_found - f_best_initial) / denominator
+            gaps.append(gap)
+    return gaps
+def calculate_average_gap_multiple_runs(runs_data, f_min, max_observations=30):
+    all_gaps = []
+    for initial_data, new_points in runs_data:
+        gaps = calculate_gap_single_run(initial_data, new_points, f_min, max_observations)
+        all_gaps.append(gaps)
+    average_gaps = np.mean(all_gaps, axis=0)
+    return average_gaps
+
+def plot_learning_curves_per_dataset(
+    dataset_name,
+    bayesian_runs,
+    random_runs,
+    f_min,
+    max_observations=30
+):
+
+    bayesian_avg_gaps = calculate_average_gap_multiple_runs(bayesian_runs, f_min, max_observations)
+    random_avg_gaps = calculate_average_gap_multiple_runs(random_runs, f_min, max_observations)
+
+    plt.figure(figsize=(8, 6))
+    plt.plot(range(1, max_observations + 1), bayesian_avg_gaps, label="Bayesian Optimization", marker='o')
+    plt.plot(range(1, max_observations + 1), random_avg_gaps, label="Random Search", marker='s', color='orange')
+    plt.title(f"Learning Curves - {dataset_name}")
+    plt.xlabel("Number of Observations")
+    plt.ylabel("Average Gap")
+    plt.grid()
+    plt.legend()
+    plt.show()
+def paired_t_test_and_speedup(bayesian_runs, random_runs, f_min, max_observations_list):
+    p_values = {}
+    speedup_observations = None
+    for max_obs in max_observations_list:
+        bayesian_gaps = calculate_average_gap_multiple_runs(bayesian_runs, f_min, max_observations=max_obs)
+        random_gaps = calculate_average_gap_multiple_runs(random_runs, f_min, max_observations=max_obs)
+        t_stat, p_value = ttest_rel(bayesian_gaps, random_gaps)
+        p_values[max_obs] = p_value
+        if speedup_observations is None and p_value > 0.05:
+            speedup_observations = max_obs
+    return p_values, speedup_observations
 if __name__ == "__main__":
-    # Data visualization
-    # plot_goldstein_price()
-    # plot_transformed_goldstein_price()
-    #
-    # KDE_lda_and_svm("lda.csv","svm.csv")
-    # transformed_KDE("lda.csv","svm.csv")
+    Data visualization
+    plot_goldstein_price()
+    plot_transformed_goldstein_price()
+    
+    KDE_lda_and_svm("lda.csv","svm.csv")
+    transformed_KDE("lda.csv","svm.csv")
 
     # Model fitting
     D = goldstein_price_dataset()
@@ -674,3 +726,156 @@ if __name__ == "__main__":
         num_runs=20,
         kernel_1=RationalQuadratic()
     )
+        Goldstein_bayesian_runs, Goldstein_random_search_runs = labeled_data_optimization_with_baseline(
+        func=goldstein_price,
+        num_initial=5,
+        num_iterations=30,
+        random_search_budget=150,
+        num_runs=20
+    )
+    SVM_bayesian_runs, SVM_random_search_runs = labeled_data_optimization_with_baseline(
+        file_path=r"C:\Users\Lenovo\Desktop\svm.csv",
+        num_initial=5,
+        num_iterations=30,
+        random_search_budget=150,
+        num_runs=20,
+        kernel_1=Matern()
+    )
+    LDA_bayesian_runs, LDA_random_search_runs = labeled_data_optimization_with_baseline(
+        file_path=r"C:\Users\Lenovo\Desktop\lda.csv",
+        num_initial=5,
+        num_iterations=30,
+        random_search_budget=150,
+        num_runs=20,
+        kernel_1=RationalQuadratic()
+    )
+    print(f"Goldstein Bayesian Runs: {len(Goldstein_bayesian_runs)}")
+    print(f"SVM Bayesian Runs: {len(SVM_bayesian_runs)}")
+    print(f"LDA Bayesian Runs: {len(LDA_bayesian_runs)}")
+    lda_data = pd.read_csv(r"C:\Users\Lenovo\Desktop\lda.csv")
+    f_min_lda = lda_data.iloc[:, 3].min()
+    svm_data = pd.read_csv(r"C:\Users\Lenovo\Desktop\svm.csv")
+    f_min_svm = svm_data.iloc[:, 3].min()
+    f_min_goldstein = find_min_on_grid(goldstein_price)
+    plot_learning_curves_per_dataset(
+        dataset_name="Goldstein-Price",
+        bayesian_runs=Goldstein_bayesian_runs,
+        random_runs=Goldstein_random_search_runs,
+        f_min=f_min_goldstein,
+        max_observations=30
+    )
+    plot_learning_curves_per_dataset(
+        dataset_name="SVM",
+        bayesian_runs=SVM_bayesian_runs,
+        random_runs=SVM_random_search_runs,
+        f_min=f_min_svm,
+        max_observations=30
+    )
+    plot_learning_curves_per_dataset(
+        dataset_name="LDA",
+        bayesian_runs=LDA_bayesian_runs,
+        random_runs=LDA_random_search_runs,
+        f_min=f_min_lda,
+        max_observations=30
+    )
+    # Observation counts to evaluate
+    observation_counts = [30, 60, 90, 120, 150]
+    datasets = [
+        ("Goldstein-Price", Goldstein_bayesian_runs, Goldstein_random_search_runs, f_min_goldstein),
+        ("SVM", SVM_bayesian_runs, SVM_random_search_runs, f_min_svm),
+        ("LDA", LDA_bayesian_runs, LDA_random_search_runs, f_min_lda)
+    ]
+
+    for dataset_name, bayesian_runs, random_runs, f_min in datasets:
+        print(f"\nMean gaps for {dataset_name} dataset:")
+        for count in observation_counts:
+            bayesian_gaps = calculate_average_gap_multiple_runs(bayesian_runs, f_min, max_observations=count)
+            random_gaps = calculate_average_gap_multiple_runs(random_runs, f_min, max_observations=count)
+            print(f"For {count} observations:")
+            print(f"  Bayesian Optimization (EI): {np.mean(bayesian_gaps):.4f}")
+            print(f"  Random Search: {np.mean(random_gaps):.4f}")
+    observation_counts = [30, 60, 90, 120, 150]
+    for dataset_name, bayesian_runs, random_runs, f_min in datasets:
+        p_values, speedup_obs = paired_t_test_and_speedup(bayesian_runs, random_runs, f_min, observation_counts)
+
+        print(f"\nResults for {dataset_name} dataset:")
+        for obs_count, p_val in p_values.items():
+            print(f"  Observations: {obs_count}, p-value: {p_val:.4f}")
+        if speedup_obs:
+            print(f"  Random search needs at least {speedup_obs} observations to reach p-value > 0.05.")
+        else:
+            print(f"  Random search does not reach p-value > 0.05 within the given observation counts.")
+            Mean gaps for Goldstein-Price dataset:
+    # For 30 observations:
+    #   Bayesian Optimization (EI): 0.6886
+    #   Random Search: 0.5660
+    # For 60 observations:
+    #   Bayesian Optimization (EI): 0.7523
+    #   Random Search: 0.7006
+    # For 90 observations:
+    #   Bayesian Optimization (EI): 0.7735
+    #   Random Search: 0.7669
+    # For 120 observations:
+    #   Bayesian Optimization (EI): 0.7842
+    #   Random Search: 0.8029
+    # For 150 observations:
+    #   Bayesian Optimization (EI): 0.7905
+    #   Random Search: 0.8274
+    
+    # Mean gaps for SVM dataset:
+    # For 30 observations:
+    #   Bayesian Optimization (EI): 0.5247
+    #   Random Search: 0.4630
+    # For 60 observations:
+    #   Bayesian Optimization (EI): 0.6712
+    #   Random Search: 0.6107
+    # For 90 observations:
+    #   Bayesian Optimization (EI): 0.7200
+    #   Random Search: 0.6962
+    # For 120 observations:
+    #   Bayesian Optimization (EI): 0.7444
+    #   Random Search: 0.7486
+    # For 150 observations:
+    #   Bayesian Optimization (EI): 0.7590
+    #   Random Search: 0.7843
+    
+    # Mean gaps for LDA dataset:
+    # For 30 observations:
+    #   Bayesian Optimization (EI): 0.6738
+    #   Random Search: 0.5468
+    # For 60 observations:
+    #   Bayesian Optimization (EI): 0.7971
+    #   Random Search: 0.6756
+    # For 90 observations:
+    #   Bayesian Optimization (EI): 0.8382
+    #   Random Search: 0.7610
+    # For 120 observations:
+    #   Bayesian Optimization (EI): 0.8587
+    #   Random Search: 0.8104
+    # For 150 observations:
+    #   Bayesian Optimization (EI): 0.8710
+    #   Random Search: 0.8417
+    
+    # Results for Goldstein-Price dataset:
+    #   Observations: 30, p-value: 0.0000
+    #   Observations: 60, p-value: 0.0000
+    #   Observations: 90, p-value: 0.5053
+    #   Observations: 120, p-value: 0.0284
+    #   Observations: 150, p-value: 0.0000
+    #   Random search needs at least 90 observations to reach p-value > 0.05.
+    
+    # Results for SVM dataset:
+    #   Observations: 30, p-value: 0.0032
+    #   Observations: 60, p-value: 0.0000
+    #   Observations: 90, p-value: 0.0093
+    #   Observations: 120, p-value: 0.6028
+    #   Observations: 150, p-value: 0.0007
+    #   Random search needs at least 120 observations to reach p-value > 0.05.
+    
+    # Results for LDA dataset:
+    #   Observations: 30, p-value: 0.0000
+    #   Observations: 60, p-value: 0.0000
+    #   Observations: 90, p-value: 0.0000
+    #   Observations: 120, p-value: 0.0000
+    #   Observations: 150, p-value: 0.0004
+    #   Random search does not reach p-value > 0.05 within the given observation counts.
