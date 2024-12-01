@@ -562,7 +562,7 @@ def labeled_data_optimization_with_baseline(
         random_search_runs.append((initial_data_bayes, new_points_random_df))
 
     return bayesian_runs, random_search_runs
-    def calculate_gap_single_run(initial_data, new_points, f_min, max_observations):
+def calculate_gap_single_run(initial_data, new_points, f_min, max_observations):
     gaps = []
     for i in range(1, max_observations + 1):
         truncated_new_points = new_points.iloc[:i]
