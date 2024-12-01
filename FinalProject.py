@@ -9,6 +9,7 @@ from sklearn.gaussian_process import GaussianProcessRegressor as GPR
 from sklearn.gaussian_process.kernels import ConstantKernel, RBF
 from sklearn.gaussian_process.kernels import Matern, RationalQuadratic, WhiteKernel, DotProduct
 from scipy.stats import ttest_rel
+from scipy.stats import kstest
 #1.Make a heatmap of the value of the Goldstein–Price function
 def goldstein_price(x1, x2):
     term1 = (1 + ((x1 + x2 + 1) ** 2) * (19 - 14 * x1 + 3 * x1 ** 2 - 14 * x2 + 6 * x1 * x2 + 3 * x2 ** 2))
@@ -287,7 +288,6 @@ def log_kde_z_scores(log_D, log_gp):
     y_pred, y_std = log_gp.predict(X, return_std=True)
     residuals = y_true - y_pred
     z_scores = residuals / y_std
-
     sns.kdeplot(z_scores, bw_method='scott')
     plt.title("KDE of Z-Scores of Residuals for Log Transformed Goldstein-Price Function")
     plt.xlabel("Z-Score")
@@ -356,6 +356,7 @@ def file_search(file_path, n_samples=32, random_state=42):
 
     print(f"For {file_path}, best Model: {best_kernel}, BIC score: {best_bic}")
     return best_kernel, best_bic, best_model
+#bayesian optimazation
 def fit_gaussian_process_with_different_kernel(D,kernel_1):
     X = D[['x1', 'x2']]
     y = D['data']
