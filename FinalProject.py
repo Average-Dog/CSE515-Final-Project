@@ -280,7 +280,6 @@ def log_kde_z_scores(log_D, log_gp):
     y_pred, y_std = log_gp.predict(X, return_std=True)
     residuals = y_true - y_pred
     z_scores = residuals / y_std
-
     sns.kdeplot(z_scores, bw_method='scott')
     plt.title("KDE of Z-Scores of Residuals for Log Transformed Goldstein-Price Function")
     plt.xlabel("Z-Score")
@@ -348,6 +347,8 @@ def file_search(file_path):
             best_kernel = name
 
     print(f"For {file_path}, best Model: {best_kernel}, BIC score: {best_bic}")
+    return best_kernel, best_bic, best_model
+#bayesian optimazation
 def fit_gaussian_process_with_different_kernel(D,kernel_1):
     X = D[['x1', 'x2']]
     y = D['data']
