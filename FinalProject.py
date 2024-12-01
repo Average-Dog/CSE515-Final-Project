@@ -1,4 +1,5 @@
 import pandas as pd
+from pandas import read_csv
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -7,7 +8,7 @@ from scipy.stats import qmc
 from sklearn.gaussian_process import GaussianProcessRegressor as GPR
 from sklearn.gaussian_process.kernels import ConstantKernel, RBF
 from sklearn.gaussian_process.kernels import Matern, RationalQuadratic, WhiteKernel, DotProduct
-
+from scipy.stats import ttest_rel
 #1.Make a heatmap of the value of the Goldstein–Price function
 def goldstein_price(x1, x2):
     term1 = (1 + ((x1 + x2 + 1) ** 2) * (19 - 14 * x1 + 3 * x1 ** 2 - 14 * x2 + 6 * x1 * x2 + 3 * x2 ** 2))
