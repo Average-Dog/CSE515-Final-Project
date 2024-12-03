@@ -1,30 +1,30 @@
-# bonus part I
-# Implement more acquisition functions and compare their performance with ei and random search as above. There are numerous options out there!
-# I choose the Beale function
-# https://www.sfu.ca/~ssurjano/beale.html
-import numpy as np
 import pandas as pd
-import seaborn as sns
+from pandas import read_csv
+import numpy as np
 import matplotlib.pyplot as plt
-from scipy.stats import norm
+import seaborn as sns
 from sklearn.preprocessing import PowerTransformer
-from sklearn.gaussian_process import GaussianProcessRegressor as GPR
-from sklearn.gaussian_process.kernels import RBF, ConstantKernel, Matern, RationalQuadratic, WhiteKernel, DotProduct
 from scipy.stats import qmc
+from sklearn.gaussian_process import GaussianProcessRegressor as GPR
+from sklearn.gaussian_process.kernels import ConstantKernel, RBF
+from sklearn.gaussian_process.kernels import Matern, RationalQuadratic, WhiteKernel, DotProduct
 from scipy.stats import ttest_rel
+from scipy.stats import norm
+from scipy.stats import kstest
+#1.Make a heatmap of the value of the Goldstein–Price function
+#1.Make a heatmap of the value of the Goldstein–Price function
+def goldstein_price(x1, x2):
+    term1 = (1 + ((x1 + x2 + 1) ** 2) * (19 - 14 * x1 + 3 * x1 ** 2 - 14 * x2 + 6 * x1 * x2 + 3 * x2 ** 2))
+    term2 = (30 + ((2 * x1 - 3 * x2) ** 2) * (18 - 32 * x1 + 12 * x1 ** 2 + 48 * x2 - 36 * x1 * x2 + 27 * x2 ** 2))
+    return term1 * term2
 
-
-# Define the Beale function
-def beale(x1, x2):
-    return (1.5 - x1 + x1 * x2) ** 2 + (2.25 - x1 + x1 * x2 ** 2) ** 2 + (2.625 - x1 + x1 * x2 ** 3) ** 2
-
-def plot_Beale():
+def plot_goldstein_price():
 
     # Compute the values for the grid
     x1 = np.linspace(-2, 2, 1000)
     x2 = np.linspace(-2, 2, 1000)
     X1, X2 = np.meshgrid(x1, x2)
-    Z = beale(X1, X2)
+    Z = goldstein_price(X1, X2)
     # Plot the heatmap
     plt.figure(figsize=(8, 6))
     ax = sns.heatmap(Z, cbar_kws={'label': 'Value'})
@@ -34,20 +34,20 @@ def plot_Beale():
     ax.set_xticklabels(tick_labels)
     ax.set_yticks(tick_positions)
     ax.set_yticklabels(tick_labels)
-    plt.title("Heatmap of the Beale Function")
+    plt.title("Heatmap of the Goldstein–Price Function")
     plt.xlabel('X1')
     plt.ylabel('X2')
     plt.show()
-#2.The Beale function is not stationary.
+#2.The Goldstein–Price function is not stationary.
 # Its values vary dramatically throughout its domain, characterized by regions of sharp peaks.
 # Regions with high function values are near (x1,x2)=(-2,2) or (2,-2), where the function will have a very high value.
 #That is, the behavior of the function appears not to be constant throughout the domain
 #3.Can you find a transformation of the data that makes it more stationary?
-#Picheny et al. (2012) use the following logarithmic form of the Beale function, on [0, 1]**2
-# Define the transformed Beale function
-def plot_transformed_Beale():
-    # Define the transformed Beale function
-    def transformed_Beale(x1, x2):
+#Picheny et al. (2012) use the following logarithmic form of the Goldstein-Price function, on [0, 1]**2
+# Define the transformed Goldstein–Price function
+def plot_transformed_goldstein_price():
+    # Define the transformed Goldstein–Price function
+    def transformed_goldstein_price(x1, x2):
         x1_bar = 4 * x1 - 2
         x2_bar = 4 * x2 - 2
         term1 = (1 + (x1_bar + x2_bar + 1) ** 2 * (
@@ -58,7 +58,7 @@ def plot_transformed_Beale():
     x1 = np.linspace(-2, 2, 1000)
     x2 = np.linspace(-2, 2, 1000)
     X1, X2 = np.meshgrid(x1, x2)
-    Z_transformed = transformed_Beale(X1, X2)
+    Z_transformed = transformed_goldstein_price(X1, X2)
     # Plot the heatmap for the transformed function
     plt.figure(figsize=(8, 6))
     ax = sns.heatmap(Z_transformed, cbar_kws={'label': 'Transformed Value'})
@@ -68,7 +68,7 @@ def plot_transformed_Beale():
     ax.set_xticklabels(tick_labels)
     ax.set_yticks(tick_positions)
     ax.set_yticklabels(tick_labels)
-    plt.title("Heatmap of the Transformed Beale Function")
+    plt.title("Heatmap of the Transformed Goldstein–Price Function")
     plt.xlabel('X1')
     plt.ylabel('X2')
     plt.show()
@@ -130,11 +130,11 @@ def transformed_KDE(lda_file_path, svm_file_path):
     plt.show()
 
 # Model fitting
-def Beale_dataset():
+def goldstein_price_dataset():
     sobol = qmc.Sobol(d=2, scramble=False)
     points = sobol.random_base2(m=5)
     scaled_pts = qmc.scale(points, l_bounds=[-2, -2], u_bounds=[2, 2])
-    values = np.array([beale(x1, x2) for x1, x2 in scaled_pts])
+    values = np.array([goldstein_price(x1, x2) for x1, x2 in scaled_pts])
     D = pd.DataFrame(scaled_pts, columns=['x1', 'x2'])
     D['data'] = values
 
@@ -207,15 +207,15 @@ def kde_z_scores(D, gp_model):
     plt.ylabel("Density")
     plt.show()
 
-#Repeat the above using a log transformation to the output of the Beale function. Does the marginal likelihood improve? Does the model appear better calibrated?
-def log_Beale(x1, x2):
-    return np.log(beale(x1, x2))
+#Repeat the above using a log transformation to the output of the Goldstein–Price function. Does the marginal likelihood improve? Does the model appear better calibrated?
+def log_goldstein_price(x1, x2):
+    return np.log(goldstein_price(x1, x2))
 
 def generate_log_dataset():
     sobol = qmc.Sobol(d=2, scramble=False)
     points = sobol.random_base2(m=5)
     scaled_pts = qmc.scale(points, l_bounds=[-2, -2], u_bounds=[2, 2])
-    values = np.array([log_Beale(x1, x2) for x1, x2 in scaled_pts])
+    values = np.array([log_goldstein_price(x1, x2) for x1, x2 in scaled_pts])
     log_D = pd.DataFrame(scaled_pts, columns=['x1', 'x2'])
     log_D['data'] = values
     return log_D
@@ -254,7 +254,7 @@ def log_gp_heatmap(log_D, log_gp):
     ax1.set_xticklabels(tick_labels)
     ax1.set_yticks(tick_positions)
     ax1.set_yticklabels(tick_labels)
-    plt.title("GP Posterior Mean Heatmap for Log Transformed Beale Function")
+    plt.title("GP Posterior Mean Heatmap for Log Transformed Goldstein-Price Function")
     plt.xlabel('X1')
     plt.ylabel('X2')
     plt.show()
@@ -266,7 +266,7 @@ def log_gp_heatmap(log_D, log_gp):
     ax2.set_xticklabels(tick_labels)
     ax2.set_yticks(tick_positions)
     ax2.set_yticklabels(tick_labels)
-    plt.title("GP Posterior Standard Deviation Heatmap for Log Transformed Beale Function")
+    plt.title("GP Posterior Standard Deviation Heatmap for Log Transformed Goldstein-Price Function")
     plt.xlabel('X1')
     plt.ylabel('X2')
     plt.show()
@@ -280,9 +280,8 @@ def log_kde_z_scores(log_D, log_gp):
     y_pred, y_std = log_gp.predict(X, return_std=True)
     residuals = y_true - y_pred
     z_scores = residuals / y_std
-
     sns.kdeplot(z_scores, bw_method='scott')
-    plt.title("KDE of Z-Scores of Residuals for Log Transformed Beale Function")
+    plt.title("KDE of Z-Scores of Residuals for Log Transformed Goldstein-Price Function")
     plt.xlabel("Z-Score")
     plt.ylabel("Density")
     plt.show()
@@ -341,14 +340,15 @@ def file_search(file_path):
     for kernel, name in models:
         gp = GPR(kernel=kernel, alpha=0.001, normalize_y=True)
         gp.fit(X, y)
-        bic = BIC(gp, lda_data)
+        bic = BIC(gp, D)
         if bic < best_bic:
             best_bic = bic
             best_model = gp
             best_kernel = name
 
     print(f"For {file_path}, best Model: {best_kernel}, BIC score: {best_bic}")
-
+    return best_kernel, best_bic, best_model
+#bayesian optimazation
 def fit_gaussian_process_with_different_kernel(D,kernel_1):
     X = D[['x1', 'x2']]
     y = D['data']
@@ -395,15 +395,15 @@ def gp_heatmap(D, gp_model):
     plt.xlabel('X1')
     plt.ylabel('X2')
     plt.show()
-def EI(X, gp_model, y_best, minimize=True):
+def QEI(X, gp_model, y_best, minimize=True):
     mu, sigma = gp_model.predict(X, return_std=True)
     sigma = np.maximum(sigma, 1e-8)
     if minimize:
         mu = -mu
         y_best = -y_best
     z = (y_best - mu) / sigma
-    ei = sigma * (z * norm.cdf(z) + norm.pdf(z))
-    return ei
+    qei = sigma * (z * norm.cdf(z) + norm.pdf(z))
+    return qei
 def gp_heatmap_for_training_points(gp_model, D):
     X = D[['x1', 'x2']].values
     y = D['data'].values
@@ -423,12 +423,13 @@ def gp_heatmap_for_training_points(gp_model, D):
     plt.ylabel("X2")
     plt.show()
 
+
 def plot_ei_for_full_region(gp_model, y_best):
     x1 = np.linspace(-2, 2, 1000)
     x2 = np.linspace(-2, 2, 1000)
     X1, X2 = np.meshgrid(x1, x2)
     grid_points = np.c_[X1.ravel(), X2.ravel()]
-    ei_values =EI(grid_points, gp_model, y_best, minimize=False)
+    ei_values = QEI(grid_points, gp_model, y_best, minimize=False)
     max_idx = np.argmax(ei_values)
     max_ei_point = grid_points[max_idx]
     max_ei = ei_values[max_idx]
@@ -444,7 +445,7 @@ def plot_ei_for_full_region(gp_model, y_best):
     print(f"Maximum EI: {max_ei:.4f} at point X1={max_ei_point[0]:.3f}, X2={max_ei_point[1]:.3f}")
     return max_ei_point
 
-def labeled_data_for_file(file_path, num_initial=5, num_iterations=30,random_seed=42,kernel_1=Matern()):
+def labeled_data_for_file(file_path, num_initial=5, num_iterations=30, random_seed=42, kernel_1=Matern()):
     np.random.seed(random_seed)
     data = pd.read_csv(file_path).iloc[:, :-1]
     initial_indices = np.random.choice(data.index, size=num_initial, replace=False)
@@ -460,7 +461,7 @@ def labeled_data_for_file(file_path, num_initial=5, num_iterations=30,random_see
         gp_model.fit(X_labeled, y_labeled)
         y_best = np.min(y_labeled)
         X_unlabeled = unlabeled_data.iloc[:, :-1].values
-        ei_values = EI(X_unlabeled, gp_model, y_best, minimize=False)
+        ei_values = QEI(X_unlabeled, gp_model, y_best, minimize=False)
         max_idx = np.argmax(ei_values)
         next_point = unlabeled_data.iloc[max_idx]
         new_points.append(next_point)
@@ -470,10 +471,10 @@ def labeled_data_for_file(file_path, num_initial=5, num_iterations=30,random_see
     new_points_df.columns = ['x1', 'x2', 'x3', 'values']
     initial_data.columns = ['x1', 'x2', 'x3', 'values']
     return initial_data, new_points_df
-def labeled_data_for_Beale(num_initial=5, num_iterations=30, random_seed=42):
+def labeled_data_for_Goldstein(num_initial=5, num_iterations=30, random_seed=42):
     np.random.seed(random_seed)
     initial_points = np.random.uniform(-2, 2, size=(num_initial, 2))
-    initial_values = np.array([beale(x1, x2) for x1, x2 in initial_points])
+    initial_values = np.array([goldstein_price(x1, x2) for x1, x2 in initial_points])
     initial_data = pd.DataFrame(initial_points, columns=['x1', 'x2'])
     initial_data['values'] = initial_values
     kernel = ConstantKernel() * RBF()
@@ -489,10 +490,10 @@ def labeled_data_for_Beale(num_initial=5, num_iterations=30, random_seed=42):
         X1, X2 = np.meshgrid(x1, x2)
         candidates = np.c_[X1.ravel(), X2.ravel()]
         y_best = np.min(y_labeled)
-        ei_values = EI(candidates, gp_model, y_best, minimize=False)
+        ei_values = QEI(candidates, gp_model, y_best, minimize=False)
         max_idx = np.argmax(ei_values)
         next_point = candidates[max_idx]
-        next_value = beale(next_point[0], next_point[1])
+        next_value = goldstein_price(next_point[0], next_point[1])
         new_points.append([next_point[0], next_point[1], next_value])
         new_row = pd.DataFrame([[next_point[0], next_point[1], next_value]], columns=labeled_data.columns)
         labeled_data = pd.concat([labeled_data, new_row], ignore_index=True)
@@ -532,7 +533,7 @@ def labeled_data_optimization_with_baseline(
                 file_path, num_initial, num_iterations, random_seed=random_seed, kernel_1=kernel_1
             )
         elif func is not None:
-            initial_data_bayes, new_points_bayes = labeled_data_for_Beale(
+            initial_data_bayes, new_points_bayes = labeled_data_for_Goldstein(
                 num_initial, num_iterations, random_seed=random_seed
             )
         else:
@@ -608,18 +609,16 @@ def paired_t_test_and_speedup(bayesian_runs, random_runs, f_min, max_observation
             speedup_observations = max_obs
     return p_values, speedup_observations
 
-
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     #Data visualization
-    plot_Beale()
-    plot_transformed_Beale()
+    plot_goldstein_price()
+    plot_transformed_goldstein_price()
 
     KDE_lda_and_svm("lda.csv","svm.csv")
     transformed_KDE("lda.csv","svm.csv")
 
     # Model fitting
-    D = Beale_dataset()
+    D = goldstein_price_dataset()
     gp = fit_gaussian_process(D)
     gp_heatmap(D, gp)
     kde_z_scores(D, gp)
@@ -629,70 +628,79 @@ if __name__ == '__main__':
     log_gp_heatmap(log_D, log_gp)
     log_kde_z_scores(log_D, log_gp)
 
-    #Beale function marginal likehood: 8.43501458084878e-07
-    #log transformed Beale function marginal likehood: 1.1910529608253435e-09
-    # The log transformed Beale function has a lower marginal likelihood than the original Beale function.
+    #normal Goldstein-Price function:
+    #no systematic errors
+    #make sense, make sense, no
+    #yes
+
+    #log transformed Goldstein-Price function:
+    #systematic errors
+    #dont make sense, dont make sense, no
+    #yes
+
+    #Goldstein-Price function marginal likehood: 0.0006025128589123176
+    #log transformed Goldstein-Price function marginal likehood: 2.1449741568070014e-14
+    # The log transformed Goldstein-Price function has a lower marginal likelihood than the original Goldstein-Price function.
 
     bic = BIC(gp, D)
     print(f"BIC Score: {bic}")
-    # BIC Score: 47.28568400927899
+    # BIC Score: 28.324912500963972
 
     best_model(D)
-    # Best Model: RationalQuadratic, BIC score: 43.695047119013374
+    # Best Model: RBF, BIC score: 28.324912500963972
 
     file_search('svm.csv')
-    #For svm.csv, best Model: WhiteKernel, BIC score: -7078.272453540012
+    #For svm.csv, best Model: Matern, BIC score: 61.06260490629114
 
     file_search('lda.csv')
-    #For lda.csv, best Model: WhiteKernel, BIC score: -1443.7360538768735
+    #For lda.csv, best Model: RationalQuadratic, BIC score: 84.95449518671941
 
-    # bayesian optimization
-    D = Beale_dataset()
-    gp_model = fit_gaussian_process_with_different_kernel(D, RBF())
+    #bayesian optimization
+    D = goldstein_price_dataset()
+    gp_model=fit_gaussian_process_with_different_kernel(D,RBF())
     gp_heatmap_for_training_points(gp_model, D)
     y_best = np.min(D['data'])
     max_ei_point = plot_ei_for_full_region(gp_model, y_best)
     print(f"Recommended next observation point: {max_ei_point}")
-    # it seems like a good next observation location
-    # Maximum EI: 627904.7684 at point X1 = -1.123, X2 = 0.182
-    # svm
-    svm_initial_data, svm_labeled_data = labeled_data_for_file('svm.csv', num_initial=5, num_iterations=30)
+    #it seems like a good next observation location
+    #Maximum EI: 627904.7684 at point X1 = -1.123, X2 = 0.182
+     # svm
+    svm_initial_data,svm_labeled_data = labeled_data_for_file('svm.csv', num_initial=5, num_iterations=30)
     print("Initial Data in SVM")
     print(svm_initial_data)
     print("Labeled data in SVM:")
     print(svm_labeled_data)
     svm_data = pd.read_csv('svm.csv')
     f_min_svm = svm_data.iloc[:, 3].min()
-    svm_labeled_data_gap = gap(svm_initial_data, svm_labeled_data, f_min_svm)
+    svm_labeled_data_gap = gap(svm_initial_data,svm_labeled_data, f_min_svm)
     print("Gap for SVM:")
     print(svm_labeled_data_gap)
     # Gap for SVM:0.5547493403693948
     # lda
-    lda_initial_data, lda_labeled_data = labeled_data_for_file('lda.csv', num_initial=5, num_iterations=30,
-                                                               kernel_1=RationalQuadratic())
+    lda_initial_data,lda_labeled_data = labeled_data_for_file('lda.csv', num_initial=5, num_iterations=30,kernel_1=RationalQuadratic())
     print("Initial Data in LDA")
     print(lda_initial_data)
     print("Labeled data in LDA:")
     print(lda_labeled_data)
     lda_data = pd.read_csv('lda.csv')
     f_min_lda = lda_data.iloc[:, 3].min()
-    lda_labeled_data_gap = gap(lda_initial_data, lda_labeled_data, f_min_lda)
+    lda_labeled_data_gap = gap(lda_initial_data,lda_labeled_data, f_min_lda)
     print("Gap for LDA:")
     print(lda_labeled_data_gap)
     # Gap for LDA:1.0
-    # Beale
-    Beale_initial_data, Beale_labeled_data = labeled_data_for_Beale(num_initial=5, num_iterations=30)
-    print("Initial Data in Beale:")
-    print(Beale_initial_data)
-    print("Labeled data in Beale–Price:")
-    print(Beale_labeled_data)
-    f_min = find_min_on_grid(beale)
-    Beale_labeled_data_gap = gap(Beale_initial_data, Beale_labeled_data, f_min)
-    print("Gap for Beale–Price:")
-    print(Beale_labeled_data_gap)
-    # Gap for Beale–Price:0.9993656638297461
-    Beale_bayesian_runs, Beale_random_search_runs = labeled_data_optimization_with_baseline(
-        func=beale,
+    # Goldstein
+    Goldstein_initial_data,Goldstein_labeled_data = labeled_data_for_Goldstein(num_initial=5, num_iterations=30)
+    print("Initial Data in Goldstein:")
+    print(Goldstein_initial_data)
+    print("Labeled data in Goldstein–Price:")
+    print(Goldstein_labeled_data)
+    f_min = find_min_on_grid(goldstein_price)
+    Goldstein_labeled_data_gap = gap(Goldstein_initial_data,Goldstein_labeled_data, f_min)
+    print("Gap for Goldstein–Price:")
+    print(Goldstein_labeled_data_gap)
+    # Gap for Goldstein–Price:0.9993656638297461
+    Goldstein_bayesian_runs, Goldstein_random_search_runs = labeled_data_optimization_with_baseline(
+        func=goldstein_price,
         num_initial=5,
         num_iterations=30,
         random_search_budget=150,
@@ -714,8 +722,8 @@ if __name__ == '__main__':
         num_runs=20,
         kernel_1=RationalQuadratic()
     )
-    Beale_bayesian_runs, Beale_random_search_runs = labeled_data_optimization_with_baseline(
-        func=beale,
+    Goldstein_bayesian_runs, Goldstein_random_search_runs = labeled_data_optimization_with_baseline(
+        func=goldstein_price,
         num_initial=5,
         num_iterations=30,
         random_search_budget=150,
@@ -737,19 +745,19 @@ if __name__ == '__main__':
         num_runs=20,
         kernel_1=RationalQuadratic()
     )
-    print(f"Beale Bayesian Runs: {len(Beale_bayesian_runs)}")
+    print(f"Goldstein Bayesian Runs: {len(Goldstein_bayesian_runs)}")
     print(f"SVM Bayesian Runs: {len(SVM_bayesian_runs)}")
     print(f"LDA Bayesian Runs: {len(LDA_bayesian_runs)}")
     lda_data = pd.read_csv(r"C:\Users\Lenovo\Desktop\lda.csv")
     f_min_lda = lda_data.iloc[:, 3].min()
     svm_data = pd.read_csv(r"C:\Users\Lenovo\Desktop\svm.csv")
     f_min_svm = svm_data.iloc[:, 3].min()
-    f_min_Beale = find_min_on_grid(beale)
+    f_min_goldstein = find_min_on_grid(goldstein_price)
     plot_learning_curves_per_dataset(
-        dataset_name="Beale",
-        bayesian_runs=Beale_bayesian_runs,
-        random_runs=Beale_random_search_runs,
-        f_min=f_min_Beale,
+        dataset_name="Goldstein-Price",
+        bayesian_runs=Goldstein_bayesian_runs,
+        random_runs=Goldstein_random_search_runs,
+        f_min=f_min_goldstein,
         max_observations=30
     )
     plot_learning_curves_per_dataset(
@@ -769,7 +777,7 @@ if __name__ == '__main__':
     # Observation counts to evaluate
     observation_counts = [30, 60, 90, 120, 150]
     datasets = [
-        ("Beale", Beale_bayesian_runs, Beale_random_search_runs, f_min_Beale),
+        ("Goldstein-Price", Goldstein_bayesian_runs, Goldstein_random_search_runs, f_min_goldstein),
         ("SVM", SVM_bayesian_runs, SVM_random_search_runs, f_min_svm),
         ("LDA", LDA_bayesian_runs, LDA_random_search_runs, f_min_lda)
     ]
@@ -794,8 +802,8 @@ if __name__ == '__main__':
         else:
             print("Random search does not reach p-value > 0.05 within the given observation counts.")
 
-# Maximum EI: 16.0374 at point X1=-0.927, X2=2.000
-# Recommended next observation point: [-0.92692693  2.        ]
+# Maximum EI: 33690.9722 at point X1=-1.123, X2=0.182
+# Recommended next observation point: [-1.12312312  0.18218218]
 # Initial Data in SVM
 #          x1   x2    x3   values
 # 665     5.0  0.9  0.10  0.40614
@@ -878,45 +886,45 @@ if __name__ == '__main__':
 # 206  1.0     4.0   4096.0  1304.324411
 # Gap for LDA:
 # 1.0
-# Initial Data in Beale:
-#          x1        x2     values
-# 0 -0.501840  1.802857   2.494268
-# 1  0.927976  0.394634   6.107748
-# 2 -1.375925 -1.376022  81.331355
-# 3 -1.767666  1.464705   1.861255
-# 4  0.404460  0.832290  12.590523
-# Labeled data in Beale–Price:
-#           x1        x2      values
-# 0   2.000000  0.286286    0.628083
-# 1  -2.000000  2.000000  143.703125
-# 2   1.983984  0.254254    0.609639
-# 3  -1.659660  1.223223    4.865369
-# 4  -1.419419  1.503504    1.437087
-# 5   1.559560  0.418418    2.671583
-# 6  -0.930931  1.847848    5.877441
-# 7  -0.690691  1.375375    6.516261
-# 8   1.299299 -0.062062    2.684447
-# 9   0.730731 -0.182182    6.358676
-# 10 -0.054054  1.427427   13.354169
-# 11  1.143143 -0.658659    4.060317
-# 12  1.715716 -0.522523    2.684061
-# 13  1.595596 -1.099099   11.272421
-# 14  1.895896  0.990991   13.736287
-# 15  0.514515 -0.842843    7.967401
-# 16  0.886887 -1.355355    9.521716
-# 17 -2.000000  1.227227    3.487268
-# 18 -0.054054 -0.250250   14.932258
-# 19  0.150150 -1.499499   11.081559
-# 20  1.111111  1.031031   15.199228
-# 21  0.670671 -2.000000   30.062070
-# 22 -0.198198 -0.982983   17.745007
-# 23 -0.446446  0.638639   17.814975
-# 24  0.026026  2.000000   15.628975
-# 25  0.374374  0.246246   10.177224
-# 26  2.000000 -2.000000  324.703125
-# 27  2.000000  2.000000  356.703125
-# 28 -0.994995 -2.000000  154.750650
-# 29  2.000000  0.626627    2.887202
-# Gap for Beale–Price:
-# 0.9355006700689723
-
+# Initial Data in Goldstein:
+#          x1        x2         values
+# 0 -0.501840  1.802857  322398.083377
+# 1  0.927976  0.394634    1081.542725
+# 2 -1.375925 -1.376022    8197.774415
+# 3 -1.767666  1.464705  260934.423771
+# 4  0.404460  0.832290    5913.974352
+# Labeled data in Goldstein–Price:
+#           x1        x2         values
+# 0   0.118118  0.010010     703.293571
+# 1  -0.370370 -1.627628    5067.466843
+# 2   1.495495  1.475475    7919.203848
+# 3   1.215215 -2.000000   17015.560140
+# 4  -2.000000 -2.000000   24376.000000
+# 5   2.000000 -1.411411  188018.178605
+# 6   0.466466 -2.000000   36238.002172
+# 7  -0.538539 -0.882883     275.414627
+# 8   0.814815  0.758759    1276.907912
+# 9   2.000000  2.000000   76728.000000
+# 10  2.000000  0.770771    1350.933332
+# 11 -1.071071 -2.000000   16985.052404
+# 12  0.434434 -0.914915     175.627670
+# 13 -2.000000 -0.470470   88062.854551
+# 14 -0.638639 -1.299299     368.263720
+# 15 -0.050050 -1.027027       3.685166
+# 16  1.611612  0.958959    1171.618597
+# 17  0.530531 -0.282282     615.358199
+# 18  0.450450  0.374374    1013.346917
+# 19  1.775776  0.366366     306.256741
+# 20  1.051051  2.000000  136291.623388
+# 21  1.183183 -0.254254     120.031867
+# 22 -0.618619  0.110110    1154.333470
+# 23 -0.242242  0.178178    1269.711478
+# 24 -0.662663 -0.246246      51.067177
+# 25  2.000000  0.282282     116.805566
+# 26  0.882883 -0.290290     210.995328
+# 27  1.351351  1.091091    1292.897606
+# 28 -0.454454 -0.098098     267.604151
+# 29 -0.574575 -1.279279     244.184303
+# Gap for Goldstein–Price:
+# 0.9993656638297461
+#
