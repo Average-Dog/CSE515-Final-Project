@@ -548,7 +548,8 @@ def labeled_data_optimization_with_baseline(
                 random_value = func(*random_point[0])
                 new_points_random.append([*random_point[0], random_value])
             else:
-                file_without_last_col = file_path.iloc[:, :-1]
+                data=read_csv(file_path)
+                file_without_last_col = data.iloc[:, :-1]
                 random_idx = np.random.choice(file_without_last_col.shape[0], size=1)
                 random_row = file_without_last_col.iloc[random_idx].values.flatten().tolist()
                 new_points_random.append(random_row)
