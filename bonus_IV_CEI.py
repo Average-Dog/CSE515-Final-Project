@@ -4,11 +4,13 @@ from scipy.stats import norm, ttest_rel
 from sklearn.gaussian_process import GaussianProcessRegressor as GPR
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel
 
+
 # Define the Goldstein-Price function
 def goldstein_price(x1, x2):
     term1 = (1 + ((x1 + x2 + 1) ** 2) * (19 - 14 * x1 + 3 * x1 ** 2 - 14 * x2 + 6 * x1 * x2 + 3 * x2 ** 2))
     term2 = (30 + ((2 * x1 - 3 * x2) ** 2) * (18 - 32 * x1 + 12 * x1 ** 2 + 48 * x2 - 36 * x1 * x2 + 27 * x2 ** 2))
     return term1 * term2
+
 
 def calculate_gap_single_run(initial_data, new_points, f_min, max_observations):
     gaps = []
@@ -24,6 +26,7 @@ def calculate_gap_single_run(initial_data, new_points, f_min, max_observations):
             gaps.append(gap)
     return gaps
 
+
 def calculate_average_gap_multiple_runs(runs_data, f_min, max_observations=30):
     all_gaps = []
     for initial_data, new_points in runs_data:
@@ -32,16 +35,18 @@ def calculate_average_gap_multiple_runs(runs_data, f_min, max_observations=30):
     average_gaps = np.mean(all_gaps, axis=0)
     return average_gaps
 
+
 # Expected Improvement (EI) function
-def QEI(X, gp_model, y_best, minimize=True):
+def CEI(X, gp_model, y_best, xi=0.01, minimize=True):
     mu, sigma = gp_model.predict(X, return_std=True)
     sigma = np.maximum(sigma, 1e-8)
     if minimize:
         mu = -mu
         y_best = -y_best
-    z = (y_best - mu) / sigma
-    qei = sigma * (z * norm.cdf(z) + norm.pdf(z))
-    return qei
+    z = (y_best - mu - xi) / sigma
+    cei = sigma * (z * norm.cdf(z) + norm.pdf(z))
+    return cei
+
 
 # Bayesian optimization with batch selection
 def bayesian_optimization_with_batch(num_initial=5, num_iterations=30, batch_size=5, random_seed=42):
@@ -62,7 +67,7 @@ def bayesian_optimization_with_batch(num_initial=5, num_iterations=30, batch_siz
         X1, X2 = np.meshgrid(x1, x2)
         grid_points = np.c_[X1.ravel(), X2.ravel()]
         y_best = labeled_data['values'].min()
-        next_points = QEI(grid_points, gp_model, y_best, batch_size, minimize=True)
+        next_points = CEI(grid_points, gp_model, y_best, batch_size, minimize=True)
         next_values = [goldstein_price(x1, x2) for x1, x2 in next_points]
         new_points.extend(list(zip(next_points[:, 0], next_points[:, 1], next_values)))
         new_rows = pd.DataFrame(next_points, columns=['x1', 'x2'])
@@ -73,12 +78,14 @@ def bayesian_optimization_with_batch(num_initial=5, num_iterations=30, batch_siz
     new_points_df = pd.DataFrame(new_points, columns=['x1', 'x2', 'values'])
     return initial_data, new_points_df
 
+
 # Function to perform paired t-test and calculate p-value
 def paired_t_test_and_p_value(bayesian_runs, random_runs, f_min, max_observations):
     bayesian_gaps = calculate_average_gap_multiple_runs(bayesian_runs, f_min, max_observations)
     random_gaps = calculate_average_gap_multiple_runs(random_runs, f_min, max_observations)
     t_stat, p_value = ttest_rel(bayesian_gaps, random_gaps)
     return p_value
+
 
 def find_min_on_grid(func):
     bounds = [[-2, 2], [-2, 2]]
@@ -91,10 +98,13 @@ def find_min_on_grid(func):
     f_min = np.min(values)
     return f_min
 
+
 if __name__ == "__main__":
     # Perform Bayesian optimization with batch selection
-    bayesian_runs = [bayesian_optimization_with_batch(num_initial=5, num_iterations=30, batch_size=5) for _ in range(20)]
-    random_runs = [bayesian_optimization_with_batch(num_initial=5, num_iterations=30, batch_size=5) for _ in range(20)]
+    bayesian_runs = [bayesian_optimization_with_batch(num_initial=5, num_iterations=30, batch_size=5) for _ in
+                     range(20)]
+    random_runs = [bayesian_optimization_with_batch(num_initial=5, num_iterations=30, batch_size=5) for _ in
+                   range(20)]  # Replace with actual random search runs
 
     # Example usage of paired t-test and p-value calculation
     f_min = find_min_on_grid(goldstein_price)
@@ -113,7 +123,7 @@ if __name__ == "__main__":
         print(f"Random search needs at least {speedup_obs} observations to reach p-value > 0.05.")
     else:
         print("Random search does not reach p-value > 0.05 within the given observation counts.")
-    
+
 # Results for Goldstein-Price dataset:
 # Observations: 30, p-value: nan
 # Observations: 60, p-value: nan

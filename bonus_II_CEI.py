@@ -459,7 +459,7 @@ def labeled_data_for_file(file_path, num_initial=5, num_iterations=30,random_see
         gp_model.fit(X_labeled, y_labeled)
         y_best = np.min(y_labeled)
         X_unlabeled = unlabeled_data.iloc[:, :-1].values
-        ei_values = EI(X_unlabeled, gp_model, y_best, minimize=False)
+        ei_values = CEI(X_unlabeled, gp_model, y_best, minimize=False)
         max_idx = np.argmax(ei_values)
         next_point = unlabeled_data.iloc[max_idx]
         new_points.append(next_point)
@@ -488,7 +488,7 @@ def labeled_data_for_Goldstein(num_initial=5, num_iterations=30, random_seed=42)
         X1, X2 = np.meshgrid(x1, x2)
         candidates = np.c_[X1.ravel(), X2.ravel()]
         y_best = np.min(y_labeled)
-        ei_values = EI(candidates, gp_model, y_best, minimize=False)
+        ei_values = CEI(candidates, gp_model, y_best, minimize=False)
         max_idx = np.argmax(ei_values)
         next_point = candidates[max_idx]
         next_value = goldstein_price(next_point[0], next_point[1])
@@ -658,7 +658,7 @@ if __name__ == "__main__":
     gp_model=fit_gaussian_process_with_different_kernel(D,RBF())
     gp_heatmap_for_training_points(gp_model, D)
     y_best = np.min(D['data'])
-    max_ei_point = plot_ei_for_full_region(gp_model, y_best)
+    max_ei_point = plot_cei_for_full_region(gp_model, y_best)
     print(f"Recommended next observation point: {max_ei_point}")
     #it seems like a good next observation location
     #Maximum EI: 627904.7684 at point X1 = -1.123, X2 = 0.182
