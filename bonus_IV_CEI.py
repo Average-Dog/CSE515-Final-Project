@@ -67,7 +67,9 @@ def bayesian_optimization_with_batch(num_initial=5, num_iterations=30, batch_siz
         X1, X2 = np.meshgrid(x1, x2)
         grid_points = np.c_[X1.ravel(), X2.ravel()]
         y_best = labeled_data['values'].min()
-        next_points = CEI(grid_points, gp_model, y_best, batch_size, minimize=True)
+        cei_values = CEI(grid_points, gp_model, y_best, minimize=True)
+        max_indices = np.argsort(cei_values)[-batch_size:]
+        next_points = grid_points[max_indices]
         next_values = [goldstein_price(x1, x2) for x1, x2 in next_points]
         new_points.extend(list(zip(next_points[:, 0], next_points[:, 1], next_values)))
         new_rows = pd.DataFrame(next_points, columns=['x1', 'x2'])
