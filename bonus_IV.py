@@ -33,21 +33,15 @@ def calculate_average_gap_multiple_runs(runs_data, f_min, max_observations=30):
     return average_gaps
 
 # Expected Improvement (EI) function
-def EI(X, gp_model, y_best, minimize=True):
+def QEI(X, gp_model, y_best, minimize=True):
     mu, sigma = gp_model.predict(X, return_std=True)
     sigma = np.maximum(sigma, 1e-8)
     if minimize:
         mu = -mu
         y_best = -y_best
     z = (y_best - mu) / sigma
-    ei = sigma * (z * norm.cdf(z) + norm.pdf(z))
-    return ei
-
-# Batch Expected Improvement (q-EI) function
-def q_EI(X, gp_model, y_best, q, minimize=True):
-    ei_values = EI(X, gp_model, y_best, minimize)
-    sorted_indices = np.argsort(-ei_values)  # Sort in descending order
-    return X[sorted_indices[:q]]
+    qei = sigma * (z * norm.cdf(z) + norm.pdf(z))
+    return qei
 
 # Bayesian optimization with batch selection
 def bayesian_optimization_with_batch(num_initial=5, num_iterations=30, batch_size=5, random_seed=42):
@@ -68,7 +62,7 @@ def bayesian_optimization_with_batch(num_initial=5, num_iterations=30, batch_siz
         X1, X2 = np.meshgrid(x1, x2)
         grid_points = np.c_[X1.ravel(), X2.ravel()]
         y_best = labeled_data['values'].min()
-        next_points = q_EI(grid_points, gp_model, y_best, batch_size, minimize=True)
+        next_points = QEI(grid_points, gp_model, y_best, batch_size, minimize=True)
         next_values = [goldstein_price(x1, x2) for x1, x2 in next_points]
         new_points.extend(list(zip(next_points[:, 0], next_points[:, 1], next_values)))
         new_rows = pd.DataFrame(next_points, columns=['x1', 'x2'])
