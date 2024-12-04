@@ -928,4 +928,77 @@ if __name__ == "__main__":
 # 29 -0.574575 -1.279279     244.184303
 # Gap for Goldstein–Price:
 # 0.9993656638297461
-#
+# Mean gaps for Goldstein-Price dataset:
+# For 30 observations:
+#   Bayesian Optimization (EI): 0.6576
+#   Random Search: 0.6003
+# For 60 observations:
+#   Bayesian Optimization (EI): 0.7460
+#   Random Search: 0.7037
+# For 90 observations:
+#   Bayesian Optimization (EI): 0.7755
+#   Random Search: 0.7475
+# For 120 observations:
+#   Bayesian Optimization (EI): 0.7902
+#   Random Search: 0.7795
+# For 150 observations:
+#   Bayesian Optimization (EI): 0.7990
+#   Random Search: 0.8019
+
+# Mean gaps for SVM dataset:
+# For 30 observations:
+#   Bayesian Optimization (EI): 0.5106
+#   Random Search: 0.3469
+# For 60 observations:
+#   Bayesian Optimization (EI): 0.6222
+#   Random Search: 0.4880
+# For 90 observations:
+#   Bayesian Optimization (EI): 0.6593
+#   Random Search: 0.5650
+# For 120 observations:
+#   Bayesian Optimization (EI): 0.6779
+#   Random Search: 0.6126
+# For 150 observations:
+#   Bayesian Optimization (EI): 0.6891
+#   Random Search: 0.6455
+
+# Mean gaps for LDA dataset:
+# For 30 observations:
+#   Bayesian Optimization (EI): 0.7111
+#   Random Search: 0.6575
+# For 60 observations:
+#   Bayesian Optimization (EI): 0.8310
+#   Random Search: 0.7521
+# For 90 observations:
+#   Bayesian Optimization (EI): 0.8710
+#   Random Search: 0.7940
+# For 120 observations:
+#   Bayesian Optimization (EI): 0.8909
+#   Random Search: 0.8196
+# For 150 observations:
+#   Bayesian Optimization (EI): 0.9029
+#   Random Search: 0.8354
+
+# Results for Goldstein-Price dataset:
+# Observations: 30, p-value: 0.0000
+# Observations: 60, p-value: 0.0000
+# Observations: 90, p-value: 0.0000
+# Observations: 120, p-value: 0.0144
+# Observations: 150, p-value: 0.4813
+# Random search needs at least 150 observations to reach p-value > 0.05.
+
+# Results for SVM dataset:
+# Observations: 30, p-value: 0.0000
+# Observations: 60, p-value: 0.0000
+# Observations: 90, p-value: 0.0000
+# Observations: 120, p-value: 0.0000
+# Observations: 150, p-value: 0.0000
+# Random search does not reach p-value > 0.05 within the given observation counts.
+
+# Results for LDA dataset:
+# Observations: 30, p-value: 0.0002
+# Observations: 60, p-value: 0.0000
+# Observations: 90, p-value: 0.0000
+# Observations: 120, p-value: 0.0000
+# Observations: 150, p-value: 0.0000
+# Random search does not reach p-value > 0.05 within the given observation counts.
