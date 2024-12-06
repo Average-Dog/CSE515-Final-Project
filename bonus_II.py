@@ -615,8 +615,8 @@ if __name__ == "__main__":
     plot_goldstein_price()
     plot_transformed_goldstein_price()
 
-    KDE_lda_and_svm("lda.csv","svm.csv")
-    transformed_KDE("lda.csv","svm.csv")
+    KDE_lda_and_svm(r"C:\Users\Lenovo\Desktop\lda.csv",r"C:\Users\Lenovo\Desktop\svm.csv")
+    transformed_KDE(r"C:\Users\Lenovo\Desktop\lda.csv",r"C:\Users\Lenovo\Desktop\svm.csv")
 
     # Model fitting
     D = goldstein_price_dataset()
@@ -650,10 +650,10 @@ if __name__ == "__main__":
     best_model(D)
     # Best Model: RBF, BIC score: 28.324912500963972
 
-    file_search('svm.csv')
+    file_search(r"C:\Users\Lenovo\Desktop\svm.csv")
     #For svm.csv, best Model: Matern, BIC score: 61.06260490629114
 
-    file_search('lda.csv')
+    file_search(r"C:\Users\Lenovo\Desktop\lda.csv")
     #For lda.csv, best Model: RationalQuadratic, BIC score: 84.95449518671941
 
     #bayesian optimization
@@ -666,24 +666,24 @@ if __name__ == "__main__":
     #it seems like a good next observation location
     #Maximum EI: 627904.7684 at point X1 = -1.123, X2 = 0.182
      # svm
-    svm_initial_data,svm_labeled_data = labeled_data_for_file('svm.csv', num_initial=5, num_iterations=30)
+    svm_initial_data,svm_labeled_data = labeled_data_for_file(r"C:\Users\Lenovo\Desktop\svm.csv", num_initial=5, num_iterations=30)
     print("Initial Data in SVM")
     print(svm_initial_data)
     print("Labeled data in SVM:")
     print(svm_labeled_data)
-    svm_data = pd.read_csv('svm.csv')
+    svm_data = pd.read_csv(r"C:\Users\Lenovo\Desktop\svm.csv")
     f_min_svm = svm_data.iloc[:, 3].min()
     svm_labeled_data_gap = gap(svm_initial_data,svm_labeled_data, f_min_svm)
     print("Gap for SVM:")
     print(svm_labeled_data_gap)
     # Gap for SVM:0.5547493403693948
     # lda
-    lda_initial_data,lda_labeled_data = labeled_data_for_file('lda.csv', num_initial=5, num_iterations=30,kernel_1=RationalQuadratic())
+    lda_initial_data,lda_labeled_data = labeled_data_for_file(r"C:\Users\Lenovo\Desktop\lda.csv", num_initial=5, num_iterations=30,kernel_1=RationalQuadratic())
     print("Initial Data in LDA")
     print(lda_initial_data)
     print("Labeled data in LDA:")
     print(lda_labeled_data)
-    lda_data = pd.read_csv('lda.csv')
+    lda_data = pd.read_csv(r"C:\Users\Lenovo\Desktop\lda.csv")
     f_min_lda = lda_data.iloc[:, 3].min()
     lda_labeled_data_gap = gap(lda_initial_data,lda_labeled_data, f_min_lda)
     print("Gap for LDA:")
@@ -802,6 +802,7 @@ if __name__ == "__main__":
             print(f"Random search needs at least {speedup_obs} observations to reach p-value > 0.05.")
         else:
             print("Random search does not reach p-value > 0.05 within the given observation counts.")
+
 
 # Maximum EI: 33690.9722 at point X1=-1.123, X2=0.182
 # Recommended next observation point: [-1.12312312  0.18218218]
